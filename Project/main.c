@@ -21,17 +21,24 @@
 // EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "main.h"
+#include "serial_debug.h"
+#include "lcd.h"
 
-char group[] = "Group00";
+char group[] = "Group25";
 char individual_1[] = "Zuodian Hu";
 char individual_2[] = "Xiao He";
-
-
 
 //*****************************************************************************
 //*****************************************************************************
 void initialize_hardware(void)
 {
+	// initialize serial debugging
+	init_serial_debug(true, true);
+	
+	// initialize the LCD to all black
+	lcd_config_gpio();
+	lcd_config_screen();
+	lcd_clear_screen(LCD_COLOR_BLACK);
 }
 
 
@@ -40,9 +47,9 @@ void initialize_hardware(void)
 int 
 main(void)
 {
-  initialize_hardware();
-  
-  // Reach infinite loop
-  while(1){
-  };
+	initialize_hardware();
+
+	// Reach infinite loop
+	while(1){
+	};
 }
