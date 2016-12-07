@@ -23,6 +23,7 @@
 #include "main.h"
 #include "serial_debug.h"
 #include "lcd.h"
+#include "ft6x06.h"
 
 char group[] = "Group25";
 char individual_1[] = "Zuodian Hu";
@@ -39,6 +40,9 @@ void initialize_hardware(void)
 	lcd_config_gpio();
 	lcd_config_screen();
 	lcd_clear_screen(LCD_COLOR_BLACK);
+	
+	// I2C
+	ft6x06_init();
 }
 
 
@@ -48,7 +52,11 @@ int
 main(void)
 {
 	initialize_hardware();
-
+	
+	printf("TRON\n");
+	printf("%s\n", group);
+	printf("%s\n%s\n\n", individual_1, individual_2);
+	
 	// Reach infinite loop
 	while(1){
 	};
