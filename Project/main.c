@@ -22,6 +22,8 @@
 
 #include "main.h"
 #include "serial_debug.h"
+#include "launchpad_io.h"
+#include "ps2.h"
 #include "lcd.h"
 #include "ft6x06.h"
 #include "io_expander.h"
@@ -30,12 +32,31 @@ char group[] = "Group25";
 char individual_1[] = "Zuodian Hu";
 char individual_2[] = "Xiao He";
 
+volatile uint16_t x_pos;
+volatile uint16_t y_pos;
+
+ADC0_Type *adc = (ADC0_Type *) PS2_ADC_BASE;
+
+void ADC0SS2_Handler(void) {
+	y_pos = adc->SSFIFO2 & ADC_SSFIFO2_DATA_M;
+	x_pos = adc->SSFIFO2 & ADC_SSFIFO2_DATA_M;
+	
+	adc->ISC |= ADC_ISC_IN2;
+}
+
+
 //*****************************************************************************
 //*****************************************************************************
 void initialize_hardware(void)
 {
 	// initialize serial debugging
 	init_serial_debug(true, true);
+	
+	// push buttons and RGB LED on LaunchPad
+	lp_io_init();
+	
+	// configure joystick with interrupts
+	init_ps2_interrupt(2);
 	
 	// initialize the LCD to all black
 	lcd_config_gpio();
