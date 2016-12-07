@@ -200,7 +200,6 @@ __weak bool  gpio_enable_port(uint32_t baseAddr)
 
    // If PortF set the LOCK and CR registers
   if(baseAddr == GPIOF_BASE )
-
   {
      GPIO_PORTF_LOCK_R = 0x4C4F434B ;
      GPIO_PORTF_CR_R = 0xFF;
@@ -411,6 +410,10 @@ bool  gpio_config_open_drain(uint32_t gpioBase, uint8_t pins)
   // ADD CODE
   // Verify that the base address is a valid GPIO base address
   // using the verify_base_addr function provided above
+  if (verify_base_addr(gpioBase) == false) return false;
+	
+  gpioPort = (GPIOA_Type *)gpioBase;
+  gpioPort->ODR |= pins;
     
   return true;
 }

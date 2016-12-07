@@ -26,9 +26,7 @@ static i2c_status_t ft6x06_set_addr
   // ADD CODE
   // Set the I2C address 
   //==============================================================
-  
-    
-    
+  status = i2cSetSlaveAddr(i2c_base, FT6X06_DEV_ID, I2C_WRITE);
   if ( status != I2C_OK )
   {
     return status;
@@ -38,8 +36,7 @@ static i2c_status_t ft6x06_set_addr
   // ADD CODE
   // Send the address
   //==============================================================
-
-
+	status = i2cSendByte(i2c_base, address, I2C_MCS_START | I2C_MCS_RUN | I2C_MCS_STOP);
   return status;
 }
 
@@ -69,9 +66,7 @@ static i2c_status_t ft6x06_read_data
   // ADD CODE
   // Set the I2C address 
   //==============================================================
-  
-    
-  
+  status = i2cSetSlaveAddr(i2c_base, FT6X06_DEV_ID, I2C_READ);
   if ( status != I2C_OK )
   {
     return status;
@@ -81,9 +76,7 @@ static i2c_status_t ft6x06_read_data
   // ADD CODE
   // get the data
   //==============================================================
-  
-
-
+  status = i2cGetByte(i2c_base, data, I2C_MCS_START | I2C_MCS_RUN | I2C_MCS_STOP);
   return status;
 }
 
@@ -92,10 +85,15 @@ static i2c_status_t ft6x06_read_data
 // Read the number of active touch points.
 //*****************************************************************************
 uint8_t ft6x06_read_td_status(void)
-{ 
+{
+	uint8_t data;
+	
   // ADD CODE
   // Return the number of active touch points.  The only valid values of the 
   // register will be 0, 1, or 2.
+	ft6x06_set_addr(FT6X06_I2C_BASE, FT6X06_TD_STATUS_R);
+	ft6x06_read_data(FT6X06_I2C_BASE, &data);
+	return data;
 } 
 
 
@@ -103,21 +101,48 @@ uint8_t ft6x06_read_td_status(void)
 // Read the X value of last touch event
 //*****************************************************************************
 uint16_t ft6x06_read_x(void)
-{ 
+{
+	uint8_t data_8;
+	uint16_t data_16;
+	
   // ADD CODE
   // Return the X coordinate of the last touch point
   // This will require reading P1_XH and P1_XL
-
+	ft6x06_set_addr(FT6X06_I2C_BASE, FT6X06_P1_XH_R);
+	ft6x06_read_data(FT6X06_I2C_BASE, &data_8);
+	
+	data_16 = (uint16_t)data_8 << 8;
+	
+	ft6x06_set_addr(FT6X06_I2C_BASE, FT6X06_P1_XL_R);
+	ft6x06_read_data(FT6X06_I2C_BASE, &data_8);
+	
+	data_16 += data_8;
+	
+	return data_16;
 } 
 
 //*****************************************************************************
 // Read the Y value of last touch event
 //*****************************************************************************
 uint16_t ft6x06_read_y(void)
-{ 
+{
+	uint16_t data_16;
+	uint8_t data_8;
+	
   // ADD CODE
   // Return the Y coordinate of the last touch point 
   // This will require reading P1_YH and P1_YL
+	ft6x06_set_addr(FT6X06_I2C_BASE, FT6X06_P1_YH_R);
+	ft6x06_read_data(FT6X06_I2C_BASE, &data_8);
+	
+	data_16 = (uint16_t)data_8 << 8;
+	
+	ft6x06_set_addr(FT6X06_I2C_BASE, FT6X06_P1_YL_R);
+	ft6x06_read_data(FT6X06_I2C_BASE, &data_8);
+	
+	data_16 += data_8;
+	
+	return data_16;
 } 
 
 //*****************************************************************************
@@ -138,7 +163,9 @@ bool ft6x06_init(void)
   {
     return false;
   }
-    
+  
+  gpio_config_enable_pullup(FT6X06_GPIO_BASE, FT6X06_I2C_SCL_PIN);
+	
   if(gpio_config_alternate_function(FT6X06_GPIO_BASE, FT6X06_I2C_SCL_PIN)== false)
   {
     return false;
@@ -161,6 +188,8 @@ bool ft6x06_init(void)
   {
     return false;
   }
+  
+  gpio_config_enable_pullup(FT6X06_GPIO_BASE, FT6X06_I2C_SDA_PIN);
     
   if(gpio_config_alternate_function(FT6X06_GPIO_BASE, FT6X06_I2C_SDA_PIN)== false)
   {

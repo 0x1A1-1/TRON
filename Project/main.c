@@ -24,6 +24,7 @@
 #include "serial_debug.h"
 #include "lcd.h"
 #include "ft6x06.h"
+#include "io_expander.h"
 
 char group[] = "Group25";
 char individual_1[] = "Zuodian Hu";
@@ -42,7 +43,10 @@ void initialize_hardware(void)
 	lcd_clear_screen(LCD_COLOR_BLACK);
 	
 	// I2C
-	ft6x06_init();
+	if (ft6x06_init() == false) {
+		printf("I2C initializatin failed\n");
+	}
+	init_io_expander();
 }
 
 
@@ -57,7 +61,11 @@ main(void)
 	printf("%s\n", group);
 	printf("%s\n%s\n\n", individual_1, individual_2);
 	
+	set_leds(0xAA);
+	
 	// Reach infinite loop
 	while(1){
+//		set_leds(0xAA);
+//		set_leds(0x55);
 	};
 }
