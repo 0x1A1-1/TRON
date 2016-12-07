@@ -397,37 +397,37 @@
             <File>
               <FileName>adc.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\drivers\c\adc.c</FilePath>
+              <FilePath>..\drivers\c\adc.c</FilePath>
             </File>
             <File>
               <FileName>gpio_port.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\drivers\c\gpio_port.c</FilePath>
+              <FilePath>..\drivers\c\gpio_port.c</FilePath>
             </File>
             <File>
               <FileName>i2c.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\drivers\c\i2c.c</FilePath>
+              <FilePath>..\drivers\c\i2c.c</FilePath>
             </File>
             <File>
               <FileName>pc_buffer.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\drivers\c\pc_buffer.c</FilePath>
+              <FilePath>..\drivers\c\pc_buffer.c</FilePath>
             </File>
             <File>
               <FileName>spi.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\drivers\c\spi.c</FilePath>
+              <FilePath>..\drivers\c\spi.c</FilePath>
             </File>
             <File>
               <FileName>timers.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\drivers\c\timers.c</FilePath>
+              <FilePath>..\drivers\c\timers.c</FilePath>
             </File>
             <File>
               <FileName>uart.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\drivers\c\uart.c</FilePath>
+              <FilePath>..\drivers\c\uart.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -437,52 +437,57 @@
             <File>
               <FileName>ece353_images.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\peripherals\c\ece353_images.c</FilePath>
+              <FilePath>..\peripherals\c\ece353_images.c</FilePath>
             </File>
             <File>
               <FileName>eeprom.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\peripherals\c\eeprom.c</FilePath>
+              <FilePath>..\peripherals\c\eeprom.c</FilePath>
             </File>
             <File>
               <FileName>ft6x06.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\peripherals\c\ft6x06.c</FilePath>
+              <FilePath>..\peripherals\c\ft6x06.c</FilePath>
+            </File>
+            <File>
+              <FileName>io_expander.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\peripherals\c\io_expander.c</FilePath>
             </File>
             <File>
               <FileName>launchpad_io.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\peripherals\c\launchpad_io.c</FilePath>
+              <FilePath>..\peripherals\c\launchpad_io.c</FilePath>
             </File>
             <File>
               <FileName>lcd.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\peripherals\c\lcd.c</FilePath>
+              <FilePath>..\peripherals\c\lcd.c</FilePath>
             </File>
             <File>
               <FileName>lcd_images.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\peripherals\c\lcd_images.c</FilePath>
+              <FilePath>..\peripherals\c\lcd_images.c</FilePath>
             </File>
             <File>
               <FileName>ps2.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\peripherals\c\ps2.c</FilePath>
+              <FilePath>..\peripherals\c\ps2.c</FilePath>
             </File>
             <File>
               <FileName>serial_debug.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\peripherals\c\serial_debug.c</FilePath>
+              <FilePath>..\peripherals\c\serial_debug.c</FilePath>
             </File>
             <File>
               <FileName>spi_select.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\peripherals\c\spi_select.c</FilePath>
+              <FilePath>..\peripherals\c\spi_select.c</FilePath>
             </File>
             <File>
               <FileName>wireless.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\peripherals\c\wireless.c</FilePath>
+              <FilePath>..\peripherals\c\wireless.c</FilePath>
             </File>
           </Files>
         </Group>
