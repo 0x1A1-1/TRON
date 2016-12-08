@@ -4,14 +4,9 @@
 extern void spiTx(uint32_t base, uint8_t *tx_data, int size, uint8_t *rx_data);
 extern bool spiVerifyBaseAddr(uint32_t base);
 
-const char *wireless_error_messages[] = {
-	"NRF24L01_TX_SUCCESS",
-	"NRF24L01_TX_FIFO_FULL",
-	"NRF24L01_TX_PCK_LOST",
-	"NRF24L01_RX_SUCCESS",
-	"NRF24L01_RX_FIFO_EMPTY",
-	"NRF24L01_ERR"
-};
+const char *wireless_error_messages[] = 
+{"NRF24L01_TX_SUCCESS","NRF24L01_TX_FIFO_FULL","NRF24L01_TX_PCK_LOST", 
+"NRF24L01_RX_SUCCESS", "NRF24L01_RX_FIFO_EMPTY", "NRF24L01_ERR"};
 
 //*****************************************************************************
 // Busy wait for roughly 15uS.
@@ -89,16 +84,24 @@ static __INLINE void  wireless_CE_Pulse(void)
 //*****************************************************************************
 static __INLINE uint8_t wireless_reg_read(uint8_t reg)
 {
-	uint8_t rx_data[2];
-	uint8_t tx_data[2];
+	uint8_t command = NRF24L01_CMD_R_REGISTER | reg;
+	uint8_t rx_data, status;
+	uint8_t random = 0x00;
 	
-	tx_data[0] = reg | NRF24L01_CMD_R_REGISTER;
-	
+	//start SPI
 	wireless_CSN_low();
-	spiTx(RF_SPI_BASE, tx_data, 2, rx_data);
+	
+	//call spiTx to transfer command 
+	spiTx(RF_SPI_BASE, &command, 1, &status);
+	
+	//send 8 bits random data to receive
+	spiTx(RF_SPI_BASE, &random, 1, &rx_data);
+	
+	//end SPI
 	wireless_CSN_high();
 	
-	return rx_data[1];
+	return rx_data;
+	
 }
 
 //*****************************************************************************
@@ -118,18 +121,27 @@ static __INLINE uint8_t wireless_reg_read(uint8_t reg)
 //*****************************************************************************
 static __INLINE void wireless_reg_write(uint8_t reg, uint8_t data)
 {
-	uint8_t rx_data[2];
-	uint8_t tx_data[2];
+	uint8_t command = reg | NRF24L01_CMD_W_REGISTER;
+	uint8_t status;
+	uint8_t random;
 	
-	tx_data[0] = NRF24L01_CMD_W_REGISTER | reg;
-	tx_data[1] = data;
-	
+	//start SPI
 	wireless_CSN_low();
-	spiTx(RF_SPI_BASE, tx_data, 2, rx_data);
-	wireless_CSN_high();
 	
-	return;
+	//call spiTx to transfer command 
+	spiTx(RF_SPI_BASE, &command, 1, &status);
+	
+	//send 8 bits  data to receive
+	spiTx(RF_SPI_BASE, &data, 1, &random);
+	
+	//end SPI
+	wireless_CSN_high();
+
+	
 }
+
+
+
 
 //*****************************************************************************
 // ADD CODE
@@ -144,20 +156,21 @@ static __INLINE void wireless_reg_write(uint8_t reg, uint8_t data)
 //*****************************************************************************
 static __INLINE void wireless_set_tx_addr(uint8_t  *tx_addr)
 {
-	int i;
-	uint8_t rx_data[6];
-	uint8_t tx_data[6];
+		//set command to send via SPITX
+		uint8_t command = NRF24L01_CMD_W_REGISTER | NRF24L01_TX_ADDR_R;
+		uint8_t status, random;
 	
-	tx_data[0] = NRF24L01_CMD_W_REGISTER | NRF24L01_TX_ADDR_R;
-	for (i=0; i<5; i++) {
-		tx_data[i+1] = tx_addr[4-i];
-	}
-	
-	wireless_CSN_low();
-	spiTx(RF_SPI_BASE, tx_data, 6, rx_data);
-	wireless_CSN_high();
-	
-	return;
+	  //start SPI
+		wireless_CSN_low();
+		
+		//call spiTx to transfer command 
+		spiTx(RF_SPI_BASE, &command, 1, &status);
+		
+		//send 8 bits  data to receive
+		spiTx(RF_SPI_BASE, tx_addr, 5, &random);
+		
+		//end SPI
+		wireless_CSN_high();
 }
 
 //*****************************************************************************
@@ -173,20 +186,31 @@ static __INLINE void wireless_set_tx_addr(uint8_t  *tx_addr)
 // 
 // Transmit the data most significant byte first.
 //*****************************************************************************
-static __INLINE void wireless_tx_data_payload( uint32_t data)
+static __INLINE void wireless_tx_data_payload(uint32_t data)
 {
-	uint8_t rx_data[5];
-	uint8_t tx_data[5];
+		//set command to send via SPITX
+		uint8_t command = NRF24L01_CMD_W_TX_PAYLOAD;
+		uint8_t random;
+		uint8_t tx_data[5];
 	
-	tx_data[0] = NRF24L01_CMD_W_TX_PAYLOAD;
-	*((uint32_t*)&tx_data[1]) = data;
+		tx_data[0] = command;
+		tx_data[4] = data ;
+		tx_data[3] = data >> 8;
+		tx_data[2] = data >> 16;
+		tx_data[1] = data >> 24;
 	
-	wireless_CSN_low();
-	spiTx(RF_SPI_BASE, tx_data, 5, rx_data);
-	wireless_CSN_high();
 	
-	return;
+	  //start SPI
+		wireless_CSN_low();
+		
+		//send 8 bits  data to receive
+		spiTx(RF_SPI_BASE, tx_data, 5, &random);
+		
+		//end SPI
+		wireless_CSN_high();
 }
+
+
 
 //*****************************************************************************
 // ADD CODE
@@ -203,16 +227,36 @@ static __INLINE void wireless_tx_data_payload( uint32_t data)
 //*****************************************************************************
 static __INLINE void wireless_rx_data_payload( uint32_t *data)
 {
-	uint8_t rx_data[5];
-	uint8_t tx_data[5];
+	//set command to send via SPITX
+		uint8_t command = NRF24L01_CMD_R_RX_PAYLOAD;
+		uint8_t tx_data[5], rx_data[5];
+		uint8_t i;
 	
-	tx_data[0] = NRF24L01_CMD_R_RX_PAYLOAD;
 	
-	wireless_CSN_low();
-	spiTx(RF_SPI_BASE, tx_data, 5, rx_data);
-	wireless_CSN_high();
-	
-	*data = *((uint32_t*)&rx_data[1]);
+		//set first byte as commmand
+		tx_data[0]=command;
+		
+		//create rest part of dont care tx
+		for(i=1; i<5; i++){
+			tx_data[i] = 0;
+		}
+		
+	  //start SPI
+		wireless_CSN_low();
+		
+		//send 8 bits  data to receive
+		spiTx(RF_SPI_BASE, tx_data, 5, rx_data);
+		
+		*data = 0;
+		
+		//transfer the return data 
+		for(i=1; i<5; i++){
+			*data = rx_data[i] << ((4-i)*8);
+		}
+		
+		//end SPI
+		wireless_CSN_high();
+		
 }
 
 //****************************************************************************
@@ -710,8 +754,8 @@ void wireless_initialize(void)
   gpio_config_digital_enable(RF_CE_GPIO_BASE,RF_CE_PIN);
   gpio_config_enable_output(RF_CE_GPIO_BASE,RF_CE_PIN);
 
-  initialize_spi(RF_SPI_BASE, 0, 10);
-  RF_CE_PORT->DATA |= (1 << 1);
+  initialize_spi( RF_SPI_BASE, 0, 10);
+  RF_CE_PORT->DATA |= RF_CE_PIN;
 }
 
 //*****************************************************************************
@@ -719,8 +763,8 @@ void wireless_initialize(void)
 //*****************************************************************************
 void wireless_test(void)
 {
-	uint8_t myID[]      = { '0', '0', '0', '0', '0'};
-	uint8_t remoteID[]  = { '0', '0', '0', '0', '0'};
+	uint8_t myID[]      = { '3', '5', '3', '0', '2'};
+	uint8_t remoteID[]  = { '3', '5', '3', '0', '1'};
 	wireless_com_status_t status;
 	int i = 0;
 	int j = 0;
