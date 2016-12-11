@@ -247,3 +247,37 @@ bool gp_timer_config_32(uint32_t base_addr, uint32_t mode, bool count_up, bool e
     
   return true;  
 }
+
+bool watchdog_timer_config(
+	WATCHDOG0_Type *wd_timer,
+	uint32_t ticks,
+	bool reset,
+	bool interrupt,
+	bool int_mask)
+{
+	if (wd_timer != WATCHDOG0 && wd_timer != WATCHDOG1) return false;
+	
+	// turn on watchdog clock
+	SYSCTL->RCGCWD |= SYSCTL_RCGC0_WDT0;
+	while (!SYSCTL->PRWD & SYSCTL_PRWD_R0);
+	
+	if (reset) {
+		wd_timer->CTL |= WATCHDOG_RESET_ON_INTERRUPT;
+	} else {
+		wd_timer->CTL &= ~WATCHDOG_RESET_ON_INTERRUPT;
+	}
+	if (interrupt) {
+		wd_timer->CTL |= WATCHDOG_INTERRUPT_ENABLE;
+	} else {
+		wd_timer->CTL &= ~WATCHDOG_INTERRUPT_ENABLE;
+	}
+	if (int_mask) {
+		wd_timer->CTL |= WATCHDOG_MASKED_INTERRUPT;
+	} else {
+		wd_timer->CTL &= ~WATCHDOG_MASKED_INTERRUPT;
+	}
+	
+	wd_timer->LOAD = ticks;
+	
+	return true;
+}

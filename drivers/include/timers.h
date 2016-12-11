@@ -6,6 +6,10 @@
 
 #include "driver_defines.h"
 
+#define WATCHDOG_INTERRUPT_ENABLE   0x00000001
+#define WATCHDOG_RESET_ON_INTERRUPT 0x00000002
+#define WATCHDOG_MASKED_INTERRUPT   0x00000004
+
 //*****************************************************************************
 // Set off a dual 16-bit timer
 //
@@ -71,4 +75,11 @@ bool gp_timer_config_32(uint32_t base_addr, uint32_t mode, bool count_up, bool e
 bool gp_timer_wait(uint32_t base_addr, uint32_t ticks);
 
 
+bool watchdog_timer_config(
+	WATCHDOG0_Type *wd_timer,
+	uint32_t ticks,
+	bool reset,
+	bool interrupt,
+	bool int_mask
+);
 #endif

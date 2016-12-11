@@ -38,14 +38,15 @@ uint8_t dest_id[] = {0,0,0,0,0};
 
 volatile uint16_t x_pos;
 volatile uint16_t y_pos;
-volatile bool redraw;
-volatile unsigned int pkts_sent;
-volatile unsigned int pkts_rcvd;
-volatile unsigned int pkts_drpd;
+volatile bool redraw = false;
+volatile unsigned int pkts_sent = 0;
+volatile unsigned int pkts_rcvd = 0;
+volatile unsigned int pkts_drpd = 0;
 
 ADC0_Type *adc = (ADC0_Type *) PS2_ADC_BASE;
 TIMER0_Type *timer0 = (TIMER0_Type *)TIMER0_BASE;
 TIMER0_Type *timer1 = (TIMER0_Type *)TIMER1_BASE;
+WATCHDOG0_Type *wdtimer = (WATCHDOG0_Type *)WATCHDOG0_BASE;
 
 void ADC0SS2_Handler(void) {
 	y_pos = adc->SSFIFO2 & ADC_SSFIFO2_DATA_M;
@@ -74,6 +75,13 @@ void TIMER1A_Handler(void) {
 	printf("Packets Dropped:  %d\n", pkts_drpd);
 	
 	timer1->ICR |= TIMER_ICR_TATOCINT;
+}
+
+// WatchDog timer handler
+void WDT0_Handler(void) {
+	printf("\nWatchDog Triggered\n");
+	
+	while(1);
 }
 
 //*****************************************************************************
@@ -127,11 +135,14 @@ void initialize_hardware(void)
 	);
 	timer1->TAILR = 150000000;
 	timer1->CTL |= TIMER_CTL_TAEN;
+	
+	// initialize and set off the watchdog timer for 15 seconds
+	watchdog_timer_config(WATCHDOG0, 750000000, false, true, false);
 }
 
 //*****************************************************************************
 //*****************************************************************************
-int 
+int
 main(void)
 {
 	initialize_hardware();
@@ -146,7 +157,7 @@ main(void)
 	while(1){
 		// update screen
 		if (redraw) {
-			
+			redraw = false;
 		}
 	};
 }
