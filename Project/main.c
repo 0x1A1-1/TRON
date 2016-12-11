@@ -27,15 +27,25 @@
 #include "lcd.h"
 #include "ft6x06.h"
 #include "io_expander.h"
+#include "wireless.h"
 
 char group[] = "Group25";
 char individual_1[] = "Zuodian Hu";
 char individual_2[] = "Xiao He";
 
+uint8_t my_id[] = {0,0,0,0,0};
+uint8_t dest_id[] = {0,0,0,0,0};
+
 volatile uint16_t x_pos;
 volatile uint16_t y_pos;
+volatile bool redraw;
+volatile unsigned int pkts_sent;
+volatile unsigned int pkts_rcvd;
+volatile unsigned int pkts_drpd;
 
 ADC0_Type *adc = (ADC0_Type *) PS2_ADC_BASE;
+TIMER0_Type *timer0 = (TIMER0_Type *)TIMER0_BASE;
+TIMER0_Type *timer1 = (TIMER0_Type *)TIMER1_BASE;
 
 void ADC0SS2_Handler(void) {
 	y_pos = adc->SSFIFO2 & ADC_SSFIFO2_DATA_M;
@@ -44,6 +54,27 @@ void ADC0SS2_Handler(void) {
 	adc->ISC |= ADC_ISC_IN2;
 }
 
+void TIMER0A_Handler(void) {
+	// kick off an ADC read
+	adc->ACTSS |= ADC_ACTSS_ASEN2;
+	adc->PSSI |= ADC_PSSI_SS2;
+	
+	timer0->ICR |= TIMER_ICR_TATOCINT;
+}
+
+void TIMER0B_Handler(void) {
+	redraw = true;
+	
+	timer0->ICR |= TIMER_ICR_TBTOCINT;
+}
+
+void TIMER1A_Handler(void) {
+	printf("Packets Sent:     %d\n", pkts_sent);
+	printf("Packets Received: %d\n", pkts_rcvd);
+	printf("Packets Dropped:  %d\n", pkts_drpd);
+	
+	timer1->ICR |= TIMER_ICR_TATOCINT;
+}
 
 //*****************************************************************************
 //*****************************************************************************
@@ -68,8 +99,35 @@ void initialize_hardware(void)
 		printf("I2C initializatin failed\n");
 	}
 	init_io_expander();
+	
+	// SPI radio
+	wireless_initialize();
+	wireless_configure_device(my_id, dest_id);
+	
+	// initialize timers
+	// initialize the timers last, since this function also starts the timers
+	gp_timer_config_16(
+		timer0,
+		TIMER_TAMR_TAMR_PERIOD,
+		false,
+		true
+	);
+	gp_timer_config_32(
+		(uint32_t)timer1,
+		TIMER_TAMR_TAMR_PERIOD,
+		false,
+		true
+	);
+	gp_timer_start_16(
+		timer0,
+		1,
+		10,
+		50000,
+		50000
+	);
+	timer1->TAILR = 150000000;
+	timer1->CTL |= TIMER_CTL_TAEN;
 }
-
 
 //*****************************************************************************
 //*****************************************************************************
@@ -86,7 +144,9 @@ main(void)
 	
 	// Reach infinite loop
 	while(1){
-//		set_leds(0xAA);
-//		set_leds(0x55);
+		// update screen
+		if (redraw) {
+			
+		}
 	};
 }
