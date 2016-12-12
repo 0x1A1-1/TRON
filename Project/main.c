@@ -60,11 +60,17 @@ void TIMER0A_Handler(void) {
 	adc->ACTSS |= ADC_ACTSS_ASEN2;
 	adc->PSSI |= ADC_PSSI_SS2;
 	
+	// debug
+	pkts_drpd++;
+	
 	timer0->ICR |= TIMER_ICR_TATOCINT;
 }
 
 void TIMER0B_Handler(void) {
 	redraw = true;
+	
+	// debug
+	pkts_rcvd++;
 	
 	timer0->ICR |= TIMER_ICR_TBTOCINT;
 }
@@ -72,13 +78,23 @@ void TIMER0B_Handler(void) {
 void TIMER1A_Handler(void) {
 	printf("Packets Sent:     %d\n", pkts_sent);
 	printf("Packets Received: %d\n", pkts_rcvd);
-	printf("Packets Dropped:  %d\n", pkts_drpd);
+	printf("Packets Dropped:  %d\n\n", pkts_drpd);
+	
+	// debug
+	pkts_sent++;
 	
 	timer1->ICR |= TIMER_ICR_TATOCINT;
 }
 
 // WatchDog timer handler
 void WDT0_Handler(void) {
+	wdtimer->ICR = 0xFFFFFFFF;
+	
+	NVIC_DisableIRQ(TIMER0A_IRQn);
+	NVIC_DisableIRQ(TIMER0B_IRQn);
+	NVIC_DisableIRQ(TIMER1A_IRQn);
+	NVIC_DisableIRQ(ADC0SS2_IRQn);
+	
 	printf("\nWatchDog Triggered\n");
 	
 	while(1);
@@ -103,9 +119,7 @@ void initialize_hardware(void)
 	lcd_clear_screen(LCD_COLOR_BLACK);
 	
 	// I2C
-	if (ft6x06_init() == false) {
-		printf("I2C initializatin failed\n");
-	}
+	ft6x06_init();
 	init_io_expander();
 	
 	// SPI radio
@@ -126,15 +140,15 @@ void initialize_hardware(void)
 		false,
 		true
 	);
+	timer1->TAILR = 150000000;
+	timer1->CTL |= TIMER_CTL_TAEN;
 	gp_timer_start_16(
 		timer0,
-		1,
-		10,
+		200,
+		100,
 		50000,
 		50000
 	);
-	timer1->TAILR = 150000000;
-	timer1->CTL |= TIMER_CTL_TAEN;
 	
 	// initialize and set off the watchdog timer for 15 seconds
 	watchdog_timer_config(WATCHDOG0, 750000000, false, true, false);

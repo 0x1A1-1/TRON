@@ -229,7 +229,7 @@ bool gp_timer_config_32(uint32_t base_addr, uint32_t mode, bool count_up, bool e
   //*********************    
   // ADD CODE
   //*********************
-	gp_timer->CTL &= (~TIMER_CTL_TAEN)|(~TIMER_CTL_TBEN);
+	gp_timer->CTL &= ~(TIMER_CTL_TAEN | TIMER_CTL_TBEN);
 	gp_timer->CFG = TIMER_CFG_32_BIT_TIMER;
 	gp_timer->TAMR &= ~TIMER_TAMR_TAMR_M;
 	gp_timer->TAMR |= mode;
@@ -258,26 +258,28 @@ bool watchdog_timer_config(
 	if (wd_timer != WATCHDOG0 && wd_timer != WATCHDOG1) return false;
 	
 	// turn on watchdog clock
-	SYSCTL->RCGCWD |= SYSCTL_RCGC0_WDT0;
-	while (!SYSCTL->PRWD & SYSCTL_PRWD_R0);
+	SYSCTL->RCGCWD |= SYSCTL_RCGCWD_R0;
+	while ((SYSCTL->PRWD & SYSCTL_PRWD_R0) == 0);
+	
+	wd_timer->LOAD = ticks;
 	
 	if (reset) {
 		wd_timer->CTL |= WATCHDOG_RESET_ON_INTERRUPT;
 	} else {
 		wd_timer->CTL &= ~WATCHDOG_RESET_ON_INTERRUPT;
 	}
-	if (interrupt) {
-		wd_timer->CTL |= WATCHDOG_INTERRUPT_ENABLE;
-	} else {
-		wd_timer->CTL &= ~WATCHDOG_INTERRUPT_ENABLE;
-	}
 	if (int_mask) {
 		wd_timer->CTL |= WATCHDOG_MASKED_INTERRUPT;
 	} else {
 		wd_timer->CTL &= ~WATCHDOG_MASKED_INTERRUPT;
 	}
+	if (interrupt) {
+		wd_timer->CTL |= WATCHDOG_INTERRUPT_ENABLE;
+	} else {
+		wd_timer->CTL &= ~WATCHDOG_INTERRUPT_ENABLE;
+	}
 	
-	wd_timer->LOAD = ticks;
+	NVIC_EnableIRQ(WATCHDOG0_IRQn);
 	
 	return true;
 }
