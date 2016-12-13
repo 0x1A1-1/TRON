@@ -43,6 +43,9 @@ volatile unsigned int pkts_sent = 0;
 volatile unsigned int pkts_rcvd = 0;
 volatile unsigned int pkts_drpd = 0;
 
+volatile uint32_t self_position;
+volatile uint32_t remote_position;
+
 ADC0_Type *adc = (ADC0_Type *) PS2_ADC_BASE;
 TIMER0_Type *timer0 = (TIMER0_Type *)TIMER0_BASE;
 TIMER0_Type *timer1 = (TIMER0_Type *)TIMER1_BASE;
@@ -60,17 +63,30 @@ void TIMER0A_Handler(void) {
 	adc->ACTSS |= ADC_ACTSS_ASEN2;
 	adc->PSSI |= ADC_PSSI_SS2;
 	
-	// debug
-	pkts_drpd++;
-	
 	timer0->ICR |= TIMER_ICR_TATOCINT;
 }
 
 void TIMER0B_Handler(void) {
-	redraw = true;
+	wireless_com_status_t status;
+	static bool send;
 	
-	// debug
-	pkts_rcvd++;
+	// on every interrupt, alternate between two operations
+	if (send) {
+		// transmit current self position
+		status = wireless_send_32(false, false, self_position);
+		if (status == NRF24L01_TX_SUCCESS) {
+			pkts_sent++;
+		} else if (status == NRF24L01_TX_PCK_LOST) {
+			pkts_drpd++;
+		}
+		
+		send = false;
+	} else {
+		// signal the main loop to redraw the frame
+		redraw = true;
+		
+		send = true;
+	}
 	
 	timer0->ICR |= TIMER_ICR_TBTOCINT;
 }
@@ -79,9 +95,6 @@ void TIMER1A_Handler(void) {
 	printf("Packets Sent:     %d\n", pkts_sent);
 	printf("Packets Received: %d\n", pkts_rcvd);
 	printf("Packets Dropped:  %d\n\n", pkts_drpd);
-	
-	// debug
-	pkts_sent++;
 	
 	timer1->ICR |= TIMER_ICR_TATOCINT;
 }
@@ -98,6 +111,18 @@ void WDT0_Handler(void) {
 	printf("\nWatchDog Triggered\n");
 	
 	while(1);
+}
+
+// radio receive interrupt handler
+void GPIOD_Handler(void) {
+	// increment received packets count
+	pkts_rcvd++;
+	
+	// store received data
+	wireless_get_32(false, (uint32_t *)&remote_position);
+	
+	// clear interrupt
+	GPIOD->ICR = PIN_3;
 }
 
 //*****************************************************************************
@@ -123,8 +148,15 @@ void initialize_hardware(void)
 	init_io_expander();
 	
 	// SPI radio
+	// set up for interrupt on receive
 	wireless_initialize();
-	wireless_configure_device(my_id, dest_id);
+	wireless_configure_device(
+		my_id,
+		dest_id,
+		true,
+		false,
+		false
+	);
 	
 	// initialize timers
 	// initialize the timers last, since this function also starts the timers
@@ -144,8 +176,8 @@ void initialize_hardware(void)
 	timer1->CTL |= TIMER_CTL_TAEN;
 	gp_timer_start_16(
 		timer0,
-		200,
-		100,
+		1,
+		10,
 		50000,
 		50000
 	);

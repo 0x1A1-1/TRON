@@ -669,9 +669,13 @@ wireless_get_32(
 //*****************************************************************************
 bool wireless_configure_device( 
   uint8_t           *my_id,
-  uint8_t           *dest_id
+  uint8_t           *dest_id,
+  bool              interrupt_rx,
+  bool              interrupt_tx,
+  bool              interrupt_rt
 )
 {
+  uint8_t config;
   
   if( spiVerifyBaseAddr(RF_SPI_BASE))
   {
@@ -701,9 +705,30 @@ bool wireless_configure_device(
     wireless_reg_write(NRF24L01_EN_RXADDR_R, NRF24L01_RXADDR_ERX_P0 | NRF24L01_RXADDR_ERX_P1); 
     wireless_reg_write(NRF24L01_EN_AA_R, NRF24L01_ENAA_P0 | NRF24L01_ENAA_P1);
 
-    // Enable the Radio in RX mode
-    wireless_reg_write(NRF24L01_CONFIG_R,NRF24L01_CONFIG_PWR_UP | NRF24L01_CONFIG_EN_CRC | NRF24L01_CONFIG_PRIM_RX_PRX );
-      
+    // Enable the Radio in RX mode, set up interrupt pins
+	config = NRF24L01_CONFIG_PWR_UP | NRF24L01_CONFIG_EN_CRC | NRF24L01_CONFIG_PRIM_RX_PRX;
+	if (interrupt_rx) {
+		config &= NRF24L01_CONFIG_MASK_RX_DR_N;
+	} else {
+		config |= ~NRF24L01_CONFIG_MASK_RX_DR_N;
+	}
+	if (interrupt_tx) {
+		config &= NRF24L01_CONFIG_MASK_TX_DS_N;
+	} else {
+		config |= ~NRF24L01_CONFIG_MASK_TX_DS_N;
+	}
+	if (interrupt_rt) {
+		config &= NRF24L01_CONFIG_MASK_MAX_RT_N;
+	} else {
+		config |= ~NRF24L01_CONFIG_MASK_MAX_RT_N;
+	}
+	wireless_reg_write(NRF24L01_CONFIG_R, config);
+	
+	// set up interrupt on GPIO pin
+	gpio_config_digital_enable(GPIOD_BASE, PIN_3);
+	gpio_config_enable_input(GPIOD_BASE, PIN_3);
+	gpio_config_falling_edge_irq(GPIOD_BASE, PIN_3);
+    
     wireless_CE_high();
     return true;
   }
@@ -773,7 +798,7 @@ void wireless_test(void)
 	printf("=== Starting RF Test ===\n\r");
 	printf("\t Set the Demo to Rx mode\n\r");
 	
-	wireless_configure_device(myID, remoteID ) ;
+	wireless_configure_device(myID, remoteID, true, true, true) ;
 	
 	while ( i < 20)
 	{

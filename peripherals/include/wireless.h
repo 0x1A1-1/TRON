@@ -212,7 +212,7 @@ wireless_send_32(
 // block until data arrives.
 //*****************************************************************************
 wireless_com_status_t 
-  wireless_get_32(
+wireless_get_32(
   bool      blockOnEmpty,
   uint32_t  *data
   );
@@ -229,7 +229,10 @@ wireless_com_status_t
 //*****************************************************************************
 bool wireless_configure_device( 
   uint8_t           *my_id,
-  uint8_t           *dest_id
+  uint8_t           *dest_id,
+  bool              interrupt_rx,
+  bool              interrupt_tx,
+  bool              interrupt_rt
 );
 
 //*****************************************************************************
