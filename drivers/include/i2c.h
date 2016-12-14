@@ -13,8 +13,8 @@
 
 
 typedef enum {
-  I2C_OK, 
-  I2C_NULL_PTR, 
+  I2C_OK,
+  I2C_NULL_PTR,
   I2C_BUS_ERROR,
   I2C_ARBLST,
   I2C_ACK_RXED,
@@ -32,6 +32,8 @@ typedef enum {
 typedef struct {
   uint32_t    BaseAddr;
 } I2C_CONFIG;
+
+void i2c_debug_status(i2c_status_t status);
 
 //*****************************************************************************
 // Initializes a given I2C peripheral to operate at 100KHz.  This assumes

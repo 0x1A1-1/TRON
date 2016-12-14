@@ -21,6 +21,7 @@
 // EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "main.h"
+#include "eeprom.h"
 #include "serial_debug.h"
 #include "launchpad_io.h"
 #include "ps2.h"
@@ -29,12 +30,14 @@
 #include "io_expander.h"
 #include "wireless.h"
 
+#define I2C_TEST_BYTES 60
+
 char group[] = "Group25";
 char individual_1[] = "Zuodian Hu";
 char individual_2[] = "Xiao He";
 
-uint8_t my_id[] = {0,0,0,0,0};
-uint8_t dest_id[] = {0,0,0,0,0};
+uint8_t my_id[] = {0,1,8,9,6};
+uint8_t dest_id[] = {3,1,0,9,5};
 
 volatile uint16_t x_pos;
 volatile uint16_t y_pos;
@@ -191,13 +194,32 @@ void initialize_hardware(void)
 int
 main(void)
 {
+	uint8_t test[60];
+	uint16_t i;
+	i2c_status_t status;
+	
 	initialize_hardware();
 	
-	printf("TRON\n");
+	printf("\n\nTRON\n");
 	printf("%s\n", group);
 	printf("%s\n%s\n\n", individual_1, individual_2);
 	
 	set_leds(0xAA);
+	/*
+	eeprom_byte_write(EEPROM_I2C_BASE, 0x118, 0xBE);
+	eeprom_byte_read(EEPROM_I2C_BASE, 0x118, test);
+	printf("Theoretical: %d | Actual: %d\n", 0xBE, test[0]);
+	*/
+	for (i = 0; i < I2C_TEST_BYTES; i++) {
+		test[i] = i;
+	}
+	status = eeprom_seq_write(EEPROM_I2C_BASE, 256, test, I2C_TEST_BYTES);
+	i2c_debug_status(status);
+	for (i = 0; i < I2C_TEST_BYTES; i++) {
+		status = eeprom_byte_read(EEPROM_I2C_BASE, i+256, &test[i]);
+		i2c_debug_status(status);
+		printf("Theoretical: %d | Actual: %d\n", i, test[i]);
+	}
 	
 	// Reach infinite loop
 	while(1){

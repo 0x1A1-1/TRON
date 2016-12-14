@@ -1,6 +1,35 @@
 #include "i2c.h"
 #include "driver_defines.h"
 
+void i2c_debug_status(i2c_status_t status) {
+	switch (status) {
+		case I2C_OK :
+			printf("I2C_OK\n");
+			break;
+		case I2C_NULL_PTR :
+			printf("I2C_NULL_PTR\n");
+			break;
+		case I2C_BUS_ERROR :
+			printf("I2C_BUS_ERROR\n");
+			break;
+		case I2C_ARBLST :
+			printf("I2C_ARBLST\n");
+			break;
+		case I2C_ACK_RXED :
+			printf("I2C_ACK_RXED\n");
+			break;
+		case I2C_NO_ACK :
+			printf("I2C_NO_ACK\n");
+			break;
+		case I2C_INVALID_BASE :
+			printf("I2C_INVALID_BASE\n");
+			break;
+		case I2C_INVALID_PARAM :
+			printf("I2C_INVALID_PARAM\n");
+			break;
+	}
+}
+
 //*****************************************************************************
 // Initializes a given I2C peripheral to operate at 100KHz.  This assumes
 // MCU core is running at 50MHz
@@ -286,8 +315,8 @@ i2c_status_t i2cSendByte(
   }
   myI2C = (I2C0_Type *) baseAddr;
   
-   // Write the upper address to the data register
-  myI2C->MDR   = byte;
+  // Write the upper address to the data register
+  myI2C->MDR = byte;
   
   // Start the transaction
   myI2C->MCS = mcs;

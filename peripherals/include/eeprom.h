@@ -6,8 +6,9 @@
 #include "i2c.h"
 #include "gpio_port.h"
 
-#define MCP24LC32AT_DEV_ID			0
-#define EEPROM_TEST_NUM_BYTES    20
+#define MCP24LC32AT_DEV_ID			 0x50
+#define EEPROM_TEST_NUM_BYTES        20
+#define EEPROM_PAGE_SIZE             32
 
 //*****************************************************************************
 // Fill out the #defines below to configure which pins are connected to
@@ -41,6 +42,13 @@ i2c_status_t eeprom_byte_write
   uint32_t  i2c_base,
   uint16_t  eepromDataAddress,
   uint8_t   data
+);
+
+i2c_status_t eeprom_seq_write( 
+	uint32_t     i2c_base,
+	uint16_t     address,
+	uint8_t      *data,
+	unsigned int bytes
 );
 
 //*****************************************************************************
