@@ -445,7 +445,7 @@ bool  gpio_config_falling_edge_irq(uint32_t gpioBase, uint8_t pins)
   gpioPort = (GPIOA_Type *)gpioBase;
   gpioPort->IS &= ~pins;
   gpioPort->IBE &= ~pins;
-  gpioPort->IEV |= pins;
+  gpioPort->IEV &= ~pins;
   gpioPort->IM |= pins;
   
   return true;

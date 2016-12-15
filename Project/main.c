@@ -30,11 +30,30 @@
 #include "io_expander.h"
 #include "wireless.h"
 
-#define I2C_TEST_BYTES 60
+struct game_info {
+	uint64_t boosts_type0;
+	uint64_t boosts_type1;
+	uint64_t boosts_type2;
+	uint64_t boosts_type3;
+	uint64_t distance;
+	uint64_t turns;
+};
 
-char group[] = "Group25";
-char individual_1[] = "Zuodian Hu";
-char individual_2[] = "Xiao He";
+struct ECE353_info {
+	char group[32];
+	char individual_1[32];
+	char individual_2[32];
+	struct game_info last_game;
+	struct game_info lifetime;
+};
+
+struct ECE353_info info = {
+	"Group25",
+	"Zuodian Hu",
+	"Xiao He",
+	{0,0,0,0,0,0},
+	{0,0,0,0,0,0}
+};
 
 uint8_t my_id[] = {0,1,8,9,6};
 uint8_t dest_id[] = {3,1,0,9,5};
@@ -124,6 +143,9 @@ void GPIOD_Handler(void) {
 	// store received data
 	wireless_get_32(false, (uint32_t *)&remote_position);
 	
+	// feed the dog
+	WATCHDOG0->LOAD = 750000000;
+	
 	// clear interrupt
 	GPIOD->ICR = PIN_3;
 }
@@ -133,7 +155,7 @@ void GPIOD_Handler(void) {
 void initialize_hardware(void)
 {
 	// initialize serial debugging
-	init_serial_debug(true, true);
+	init_serial_debug(false, false);
 	
 	// push buttons and RGB LED on LaunchPad
 	lp_io_init();
@@ -179,8 +201,8 @@ void initialize_hardware(void)
 	timer1->CTL |= TIMER_CTL_TAEN;
 	gp_timer_start_16(
 		timer0,
-		1,
-		10,
+		1000,
+		1000,
 		50000,
 		50000
 	);
@@ -194,32 +216,32 @@ void initialize_hardware(void)
 int
 main(void)
 {
-	uint8_t test[60];
-	uint16_t i;
 	i2c_status_t status;
+	int i;
+	uint8_t test[60];
 	
 	initialize_hardware();
 	
+	eeprom_seq_write(EEPROM_I2C_BASE, 0, (uint8_t *)&info, sizeof(info));
+	//for (i=0; i<sizeof(info); i++) {
+	//	eeprom_byte_read(EEPROM_I2C_BASE, i, &((uint8_t *)(&info))[i]);
+	//}
+	//for (i=0; i<60; i++) {
+	//	test[i] = i;
+	//}
+	//eeprom_seq_write(EEPROM_I2C_BASE, 512, test, 32);
+	//for (i=0; i<60; i++) {
+	//	eeprom_byte_read(EEPROM_I2C_BASE, 512+i, &test[i]);
+	//}
+	
+	//eeprom_byte_read(EEPROM_I2C_BASE, 512, test);
+	eeprom_seq_read(EEPROM_I2C_BASE, 0, (uint8_t *)(&info), sizeof(info));
+	
 	printf("\n\nTRON\n");
-	printf("%s\n", group);
-	printf("%s\n%s\n\n", individual_1, individual_2);
+	printf("%s\n", info.group);
+	printf("%s\n%s\n\n", info.individual_1, info.individual_2);
 	
 	set_leds(0xAA);
-	/*
-	eeprom_byte_write(EEPROM_I2C_BASE, 0x118, 0xBE);
-	eeprom_byte_read(EEPROM_I2C_BASE, 0x118, test);
-	printf("Theoretical: %d | Actual: %d\n", 0xBE, test[0]);
-	*/
-	for (i = 0; i < I2C_TEST_BYTES; i++) {
-		test[i] = i;
-	}
-	status = eeprom_seq_write(EEPROM_I2C_BASE, 256, test, I2C_TEST_BYTES);
-	i2c_debug_status(status);
-	for (i = 0; i < I2C_TEST_BYTES; i++) {
-		status = eeprom_byte_read(EEPROM_I2C_BASE, i+256, &test[i]);
-		i2c_debug_status(status);
-		printf("Theoretical: %d | Actual: %d\n", i, test[i]);
-	}
 	
 	// Reach infinite loop
 	while(1){

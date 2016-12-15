@@ -723,13 +723,16 @@ bool wireless_configure_device(
 		config |= ~NRF24L01_CONFIG_MASK_MAX_RT_N;
 	}
 	wireless_reg_write(NRF24L01_CONFIG_R, config);
+    
+    wireless_CE_high();
 	
 	// set up interrupt on GPIO pin
 	gpio_config_digital_enable(GPIOD_BASE, PIN_3);
 	gpio_config_enable_input(GPIOD_BASE, PIN_3);
 	gpio_config_falling_edge_irq(GPIOD_BASE, PIN_3);
-    
-    wireless_CE_high();
+	
+	NVIC_EnableIRQ(GPIOD_IRQn);
+	
     return true;
   }
   else

@@ -72,6 +72,13 @@ i2c_status_t eeprom_byte_read
   uint8_t   *data
 );
 
+i2c_status_t eeprom_seq_read( 
+	uint32_t     i2c_base,
+	uint16_t     address,
+	uint8_t      *data,
+	unsigned int bytes
+);
+
 //*****************************************************************************
 // Initialize the EEPROM peripheral
 //*****************************************************************************
