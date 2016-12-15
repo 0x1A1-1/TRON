@@ -377,7 +377,7 @@ void initialize_hardware(void)
 	gp_timer_start_16(
 		timer0,
 		1,
-		20,
+		50,
 		50000,
 		50000
 	);
@@ -637,7 +637,7 @@ main(void)
 	// Reach infinite loop
 	while(1){
 		handle_buttons();
-		if (powerup_charge > 50) {
+		if (powerup_charge > 10) {
 			powerup_charge = 0;
 			switch (led_status) {
 				case 0x80 :
