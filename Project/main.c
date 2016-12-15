@@ -169,13 +169,15 @@ void player2Tron(){
 
 	uint8_t up = 0, down=0, left = 0, right = 0;
 	uint8_t i ;
-	bool straight_line = false;
 
-	if(remote_packet.x_pos!=receive_packet.x_pos || )
+	receive_packet.x_pos = 240 - receive_packet.x_pos;
+	receive_packet.y_pos = 320 - receive_packet.y_pos;
+
+	if(remote_mode_state==MOV_LEFT || remote_mode_state==MOV_RIGHT)
 	{
 		if(remote_packet.x_pos<receive_packet.x_pos)
 		{
-			for (i=remote_packet.x_pos; i<receive_packet.x_pos; i++)
+			for (i=remote_packet.x_pos; i<receive_packet.x_pos+1; i++)
 			{
 				lcd_draw_image(
 							i,                 // X Pos
@@ -190,7 +192,7 @@ void player2Tron(){
 		}
 		else if(remote_packet.x_pos>receive_packet.x_pos)
 		{
-			for (i=remote_packet.x_pos; i>receive_packet.x_pos; i--)
+			for (i=remote_packet.x_pos; i>receive_packet.x_pos-1; i--)
 			{
 				lcd_draw_image(
 							i,                 // X Pos
@@ -203,16 +205,20 @@ void player2Tron(){
 						);
 			}
 		}
-		else if(remote_packet.y_pos<receive_packet.y_pos)
+		remote_packet.x_pos = receive_packet.x_pos;
+	}
+	else if (remote_mode_state==MOV_UP || remote_mode_state==MOV_DOWN)
+	{
+	  if(remote_packet.y_pos<receive_packet.y_pos)
 		{
-			for (i=remote_packet.y_pos; i<receive_packet.y_pos; i++)
+			for (i=remote_packet.y_pos; i<receive_packet.y_pos+1; i++)
 			{
 				lcd_draw_image(
 						receive_packet.x_pos,                 // X Pos
 						imageWidthPixels,   // Image Horizontal Width
 						i,                 // Y Pos
 						imageHeightPixels,  // Image Vertical Height
-						ver_trail_for_up,       // Image
+						tron_up,       // Image
 						LCD_COLOR_RED,      // Foreground Color
 						LCD_COLOR_BLACK     // Background Color
 					);
@@ -220,19 +226,20 @@ void player2Tron(){
 		}
 		else if(remote_packet.y_pos>receive_packet.y_pos)
 		{
-			for (i=remote_packet.y_pos; i>receive_packet.y_pos; i--)
+			for (i=remote_packet.y_pos; i>receive_packet.y_pos-1; i--)
 			{
 				lcd_draw_image(
 						receive_packet.x_pos,                 // X Pos
 						imageWidthPixels,   // Image Horizontal Width
 						i,                 // Y Pos
 						imageHeightPixels,  // Image Vertical Height
-						ver_trail_for_down,       // Image
+						tron_down,       // Image
 						LCD_COLOR_RED,      // Foreground Color
 						LCD_COLOR_BLACK     // Background Color
 					);
 			}
 		}
+		remote_packet.y_pos = receive_packet.y_pos;
 	}
 
 	if(receive_packet.direction & 1<<4){
@@ -272,32 +279,21 @@ void player2Tron(){
 									);
 							 receive_packet.x_pos += 5;
 						}
-					 if (remote_mode_state != MOV_RIGHT){
+
 						remote_mode_state = MOV_LEFT;
-						receive_packet.x_pos++;
-						lcd_draw_image(
-									receive_packet.x_pos,                 // X Pos
-									imageHeightPixels,   // Image Horizontal Width
-									receive_packet.y_pos,                 // Y Pos
-									imageWidthPixels,  // Image Vertical Height
-									tron_left,       // Image
-									LCD_COLOR_RED,      // Foreground Color
-									LCD_COLOR_BLACK     // Background Color
-								);
-						}else{
-							right = 1;
-							left =0;
-							receive_packet.x_pos--;
+						for (i=remote_packet.x_pos; i<receive_packet.x_pos+1; i++)
+						{
 							lcd_draw_image(
-										receive_packet.x_pos,                 // X Pos
+										i,                 // X Pos
 										imageHeightPixels,   // Image Horizontal Width
 										receive_packet.y_pos,                 // Y Pos
 										imageWidthPixels,  // Image Vertical Height
-										tron_right,       // Image
+										tron_left,       // Image
 										LCD_COLOR_RED,      // Foreground Color
 										LCD_COLOR_BLACK     // Background Color
 									);
 						}
+						remote_packet.x_pos = receive_packet.x_pos;
 	}
 	else if (right==1 && receive_packet.x_pos>0)
 	{
@@ -317,43 +313,31 @@ void player2Tron(){
 		 }
 		if (remote_mode_state==MOV_DOWN)
 		{
-		lcd_draw_image(
-						receive_packet.x_pos,                 // X Pos
-						imageWidthPixels,   // Image Horizontal Width
-						receive_packet.y_pos,                 // Y Pos
-						imageHeightPixels,  // Image Vertical Height
-						ver_trail_for_down,       // Image
-						LCD_COLOR_RED,      // Foreground Color
-						LCD_COLOR_BLACK     // Background Color
-					);
-			 receive_packet.x_pos -= 15;
+			lcd_draw_image(
+							receive_packet.x_pos,                 // X Pos
+							imageWidthPixels,   // Image Horizontal Width
+							receive_packet.y_pos,                 // Y Pos
+							imageHeightPixels,  // Image Vertical Height
+							ver_trail_for_down,       // Image
+							LCD_COLOR_RED,      // Foreground Color
+							LCD_COLOR_BLACK     // Background Color
+			);
+			receive_packet.x_pos -= 15;
 		}
-		if (remote_mode_state != MOV_LEFT){
-		 remote_mode_state = MOV_RIGHT;
-		 receive_packet.x_pos--;
-		 lcd_draw_image(
-						receive_packet.x_pos,                 // X Pos
+		remote_mode_state = MOV_RIGHT;
+		for (i=remote_packet.x_pos; i>receive_packet.x_pos-1; i--)
+		{
+			lcd_draw_image(
+						i,                 // X Pos
 						imageHeightPixels,   // Image Horizontal Width
 						receive_packet.y_pos,                 // Y Pos
 						imageWidthPixels,  // Image Vertical Height
 						tron_right,       // Image
 						LCD_COLOR_RED,      // Foreground Color
-						LCD_COLOR_BLACK    // Background Color
-					);
-		}else{
-			left = 1 ;
-			right = 0;
-			receive_packet.x_pos++;
-			lcd_draw_image(
-						receive_packet.x_pos,                 // X Pos
-						imageHeightPixels,   // Image Horizontal Width
-						receive_packet.y_pos,                 // Y Pos
-						imageWidthPixels,  // Image Vertical Height
-						tron_left,       // Image
-						LCD_COLOR_RED,      // Foreground Color
 						LCD_COLOR_BLACK     // Background Color
 					);
-	  }
+		}
+		remote_packet.x_pos = receive_packet.x_pos;
 	}
 	else if (up==1 && receive_packet.y_pos<299)
 	{
@@ -382,33 +366,20 @@ void player2Tron(){
 						);
 				 receive_packet.y_pos += 5;
 			}
-
-		 if (remote_mode_state != MOV_DOWN){
-			 remote_mode_state = MOV_UP;
-			 receive_packet.y_pos++;
-			  lcd_draw_image(
-							receive_packet.x_pos,                 // X Pos
-							imageWidthPixels,   // Image Horizontal Width
-							receive_packet.y_pos,                 // Y Pos
-							imageHeightPixels,  // Image Vertical Height
-							tron_up,       // Image
-							LCD_COLOR_RED,      // Foreground Color
-							LCD_COLOR_BLACK     // Background Color
-						);
-			}else{
-				down = 1;
-				up= 0;
-				receive_packet.y_pos--;
-				lcd_draw_image(
-									receive_packet.x_pos,                 // X Pos
-									imageWidthPixels,   // Image Horizontal Width
-									receive_packet.y_pos,                 // Y Pos
-									imageHeightPixels,  // Image Vertical Height
-									tron_down,       // Image
-									LCD_COLOR_RED,      // Foreground Color
-									LCD_COLOR_BLACK     // Background Color
-								);
+			remote_mode_state = MOV_UP;
+			for (i=remote_packet.y_pos; i<receive_packet.y_pos+1; i++)
+			{
+			 lcd_draw_image(
+					 receive_packet.x_pos,                 // X Pos
+					 imageWidthPixels,   // Image Horizontal Width
+					 i,                 // Y Pos
+					 imageHeightPixels,  // Image Vertical Height
+					 tron_up,       // Image
+					 LCD_COLOR_RED,      // Foreground Color
+					 LCD_COLOR_BLACK     // Background Color
+				 );
 			}
+			remote_packet.y_pos = receive_packet.y_pos;
 		}
 		else if (down==1 && receive_packet.y_pos>0)
 		{
@@ -437,33 +408,20 @@ void player2Tron(){
 							);
 					 receive_packet.y_pos -= 15;
 				}
-
-				 if (remote_mode_state != MOV_UP){
-					remote_mode_state = MOV_DOWN;
-				  receive_packet.y_pos--;
-					lcd_draw_image(
-										receive_packet.x_pos,                 // X Pos
-										imageWidthPixels,   // Image Horizontal Width
-										receive_packet.y_pos,                 // Y Pos
-										imageHeightPixels,  // Image Vertical Height
-										tron_down,       // Image
-										LCD_COLOR_RED,      // Foreground Color
-										LCD_COLOR_BLACK     // Background Color
-									);
-				}else{
-					down = 0;
-					up= 1;
-					receive_packet.y_pos++;
-					lcd_draw_image(
-										receive_packet.x_pos,                 // X Pos
-										imageWidthPixels,   // Image Horizontal Width
-										receive_packet.y_pos,                 // Y Pos
-										imageHeightPixels,  // Image Vertical Height
-										tron_up,       // Image
-										LCD_COLOR_RED,      // Foreground Color
-										LCD_COLOR_BLACK     // Background Color
-									);
+				remote_mode_state = MOV_DOWN;
+				for (i=remote_packet.y_pos; i>receive_packet.y_pos-1; i--)
+				{
+				 lcd_draw_image(
+						 receive_packet.x_pos,                 // X Pos
+						 imageWidthPixels,   // Image Horizontal Width
+						 i,                 // Y Pos
+						 imageHeightPixels,  // Image Vertical Height
+						 tron_down,       // Image
+						 LCD_COLOR_RED,      // Foreground Color
+						 LCD_COLOR_BLACK     // Background Color
+					 );
 				}
+				remote_packet.y_pos = receive_packet.y_pos;
 		}
 }
 
@@ -703,6 +661,23 @@ main(void)
 
 	memset(&(info.last_game), 0, sizeof(info.last_game));
 
+	lcd_draw_image(
+							0,                 // X Pos
+							tr2n_logoWidthPixels,   // Image Horizontal Width
+							250,                 // Y Pos
+							tr2n_logoHeightPixels,  // Image Vertical Height
+							tron_logo,       // Image
+							LCD_COLOR_BLUE2,      // Foreground Color
+							LCD_COLOR_BLACK     // Background Color
+						);
+
+	remote_mode_state = MOV_DOWN;
+	remote_packet.x_pos = 120;
+	remote_packet.y_pos = 50;
+	receive_packet.direction =1;
+	receive_packet.x_pos=120;
+	receive_packet.y_pos=50;
+
 	while (!self_play || !remote_play) {
 		if (receive) {
 			wireless_get_32(false, (uint32_t *)&startup);
@@ -789,6 +764,9 @@ main(void)
 		if (handle_player2) {
 			//player2Tron
 			player2Tron();
+
+			//copy the received packet
+			remote_packet = receive_packet;
 		}
 
 		// update screen
@@ -802,10 +780,6 @@ main(void)
 				up = 1;
 				send_packet.x_pos=120;
 				send_packet.y_pos=50;
-				receive_packet.direction =1;
-				receive_packet.x_pos=120;
-				receive_packet.y_pos=270;
-
 			}
 
 			if (mov&0x20 && send_packet.x_pos<220){
