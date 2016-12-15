@@ -1,15 +1,18 @@
 #include "tron.h"
 
-void tron_draw_up(unsigned int curr_x, unsigned int curr_y, bool remote) {
+void tron_draw_up(unsigned int curr_x, unsigned int curr_y, bool remote, bool box) {
 	uint16_t fg_color;
 	uint16_t bg_color;
 	
 	if (remote) {
-		fg_color = SELF_FG;
-		bg_color = SELF_BG;
-	} else {
 		fg_color = REMOTE_FG;
 		bg_color = REMOTE_BG;
+	} else {
+		fg_color = SELF_FG;
+		bg_color = SELF_BG;
+	}
+	if (box) {
+		fg_color = bg_color;
 	}
 	
 	lcd_draw_image(
@@ -23,16 +26,19 @@ void tron_draw_up(unsigned int curr_x, unsigned int curr_y, bool remote) {
 	);
 }
 
-void tron_draw_down(unsigned int curr_x, unsigned int curr_y, bool remote) {
+void tron_draw_down(unsigned int curr_x, unsigned int curr_y, bool remote, bool box) {
 	uint16_t fg_color;
 	uint16_t bg_color;
 	
 	if (remote) {
-		fg_color = SELF_FG;
-		bg_color = SELF_BG;
-	} else {
 		fg_color = REMOTE_FG;
 		bg_color = REMOTE_BG;
+	} else {
+		fg_color = SELF_FG;
+		bg_color = SELF_BG;
+	}
+	if (box) {
+		fg_color = bg_color;
 	}
 	
 	lcd_draw_image(
@@ -46,16 +52,19 @@ void tron_draw_down(unsigned int curr_x, unsigned int curr_y, bool remote) {
 	);
 }
 
-void tron_draw_left(unsigned int curr_x, unsigned int curr_y, bool remote) {
+void tron_draw_left(unsigned int curr_x, unsigned int curr_y, bool remote, bool box) {
 	uint16_t fg_color;
 	uint16_t bg_color;
 	
 	if (remote) {
-		fg_color = SELF_FG;
-		bg_color = SELF_BG;
-	} else {
 		fg_color = REMOTE_FG;
 		bg_color = REMOTE_BG;
+	} else {
+		fg_color = SELF_FG;
+		bg_color = SELF_BG;
+	}
+	if (box) {
+		fg_color = bg_color;
 	}
 	
 	lcd_draw_image(
@@ -63,22 +72,25 @@ void tron_draw_left(unsigned int curr_x, unsigned int curr_y, bool remote) {
 		20,
 		curr_y-5,
 		10,
-		tron_up,
+		tron_left,
 		fg_color,
 		bg_color
 	);
 }
 
-void tron_draw_right(unsigned int curr_x, unsigned int curr_y, bool remote) {
+void tron_draw_right(unsigned int curr_x, unsigned int curr_y, bool remote, bool box) {
 	uint16_t fg_color;
 	uint16_t bg_color;
 	
 	if (remote) {
-		fg_color = SELF_FG;
-		bg_color = SELF_BG;
-	} else {
 		fg_color = REMOTE_FG;
 		bg_color = REMOTE_BG;
+	} else {
+		fg_color = SELF_FG;
+		bg_color = SELF_BG;
+	}
+	if (box) {
+		fg_color = bg_color;
 	}
 	
 	lcd_draw_image(
@@ -86,7 +98,7 @@ void tron_draw_right(unsigned int curr_x, unsigned int curr_y, bool remote) {
 		20,
 		curr_y-5,
 		10,
-		tron_up,
+		tron_right,
 		fg_color,
 		bg_color
 	);
@@ -94,7 +106,7 @@ void tron_draw_right(unsigned int curr_x, unsigned int curr_y, bool remote) {
 
 void turn_hor_from_ver(unsigned int curr_x, unsigned int curr_y, bool up, bool remote){
 	uint16_t fg_color;
-	uint8_t [] trail;
+	uint8_t *trail;
 
 	if (remote) {
 		fg_color = LCD_COLOR_RED;
@@ -103,9 +115,9 @@ void turn_hor_from_ver(unsigned int curr_x, unsigned int curr_y, bool up, bool r
 	}
 
 	if (up){
-		trail = ver_trail_for_up;
+		trail = (uint8_t *)ver_trail_for_up;
 	} else {
-		trail = ver_trail_for_down;
+		trail = (uint8_t *)ver_trail_for_down;
 	}
 
 	lcd_draw_image(
