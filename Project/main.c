@@ -70,8 +70,8 @@ static MODES mode_state = MOV_UP;
 uint8_t my_id[] = {0,1,2,3,4};
 uint8_t dest_id[] = {4,3,2,1,0};
 
-volatile bool self_play = false;
-volatile bool remote_play = false;
+volatile bool sender = false;
+volatile bool ready = false;
 volatile uint16_t x_pos;
 volatile uint16_t y_pos;
 volatile bool redraw = false;
@@ -377,7 +377,7 @@ void initialize_hardware(void)
 	gp_timer_start_16(
 		timer0,
 		1,
-		50,
+		20,
 		50000,
 		50000
 	);
@@ -398,8 +398,7 @@ void spin(bool win) {
 		}
 	}
 }
-//*****************************************************************************
-//*****************************************************************************
+
 void game_over_check(){
 
   uint8_t i;
@@ -530,13 +529,13 @@ main(void)
 	int i;
 	bool start=true;
 	uint8_t mov;
-
 	uint8_t up = 0, down = 0, left = 0, right = 0;
-
+	
+	/*************************************
+	 * Initialize hardware and variables *
+	 *************************************/
 	initialize_hardware();
-
 	led_status = 0x80;
-
 	set_leds(led_status);
 
 	eeprom_seq_read(EEPROM_I2C_BASE, 0, (uint8_t *)(&info), sizeof(info));
@@ -554,6 +553,17 @@ main(void)
 
 	memset(&(info.last_game), 0, sizeof(info.last_game));
 
+	old_packet.x_pos = 120;
+	old_packet.y_pos = 272;
+	old_packet.direction = 0x1;
+
+	new_packet.x_pos = 120;
+	new_packet.y_pos = 271;
+	new_packet.direction = 0x1;
+	
+	/******************************
+	 * Draw startup splash screen *
+	 ******************************/
 	lcd_draw_image(
 		0,                     // X Pos
 		tr2n_logoWidthPixels,  // Image Horizontal Width
@@ -583,69 +593,73 @@ main(void)
 		LCD_COLOR_CYAN,      // Foreground Color
 		LCD_COLOR_GRAY     // Background Color
 	);
-
-	old_packet.x_pos = 120;
-	old_packet.y_pos = 272;
-	old_packet.direction = 0x1;
-
-	new_packet.x_pos = 120;
-	new_packet.y_pos = 271;
-	new_packet.direction = 0x1;
-
-	while (!self_play || !remote_play) {
+	
+	/**********************************************************
+	 * Start-of-game handshake establishes a master and slave *
+	 **********************************************************/
+	while (1) {
+		// upon receiving, check if it's a command or ack
 		if (receive) {
-			wireless_get_32(false, (uint32_t *)&startup);
+			wireless_get_32(false, (uint32_t *)(&startup));
 			receive = false;
-			if (startup == 0xBEEF) {
-				remote_play = true;
+			if (ready) {
+				if (startup == 0xBEEF) {
+					sender = true;
+					goto START;
+				}
+				if (startup == 0xDEAD) {
+					wireless_status = wireless_send_32(true, true, 0xBEEF);
+					if (wireless_status == NRF24L01_TX_SUCCESS) {
+						sender = false;
+						goto START;
+					}
+				}
 			}
 		}
-		if (ft6x06_read_td_status() > 0) {
-			if (ft6x06_read_y() < 100 && ft6x06_read_y() > 50 && ft6x06_read_x() < 140 && ft6x06_read_x() > 0) {
-				wireless_status = wireless_send_32(false, false, 0xBEEF);
-				if (wireless_status == NRF24L01_TX_SUCCESS) {
-					pkts_sent++;
-				} else if (wireless_status == NRF24L01_TX_PCK_LOST) {
-					pkts_drpd++;
-				}
-				self_play = true;
+		
+		// upon player touch, become ready to play and ask for an ack
+		if (ft6x06_read_td_status > 0 &&
+			ft6x06_read_x() < 140 &&
+			ft6x06_read_x() > 0 &&
+			ft6x06_read_y() < 100 &&
+			ft6x06_read_y() > 50)
+		{
+			// wait for trasmit interrupt
+			while (!transmit);
+			transmit = false;
+			
+			wireless_status = wireless_send_32(true, false, 0xDEAD);
+			if (wireless_status == NRF24L01_TX_SUCCESS) {
+				pkts_sent++;
+			} else if (wireless_status == NRF24L01_TX_PCK_LOST) {
+				pkts_drpd++;
 			}
+			ready = true;
+			sender = true;
 		}
 	}
-
+	
+	/****************************************************************************
+	 * Clear the startup splash, initiate the watchdog timer and start the game *
+	 ****************************************************************************/
+	START:
 	lcd_clear_screen(LCD_COLOR_BLACK);
-
 	// initialize and set off the watchdog timer for 15 seconds
 	watchdog_timer_config(WATCHDOG0, 750000000 , false, true, false);
-
-	// filter out start packets
-	/*while(1) {
-		if (receive) {
-			wireless_status = wireless_get_32(false, (uint32_t *)(&new_packet));
-			switch (new_packet.direction & 0xF) {
-				case 0x1 :
-				case 0x2 :
-				case 0x4 :
-				case 0x8 :
-					goto RUN;
-				default :
-					wireless_status = wireless_send_32(false, false, 0xBEEF);
-					if (wireless_status == NRF24L01_TX_SUCCESS) {
-						pkts_sent++;
-					} else if (wireless_status == NRF24L01_TX_PCK_LOST) {
-						pkts_drpd++;
-					}
-					break;
-			}
-			receive = false;
-		}
-	}*/
-
-	printf("\n*********************\n");
-	printf("** start main loop **\n");
-	printf("*********************\n");
-	// Reach infinite loop
+	printf("\n*********************");
+	printf("\n** start main loop **");
+	printf("\n*********************");
+	if (sender) {
+		printf("\n***** AS SENDER *****");
+		printf("\n*********************\n");
+	} else {
+		printf("\n**** AS RECEIVER ****");
+		printf("\n*********************\n");
+	}
 	while(1){
+		/*
+		 * LEDs indicate when a Boost is ready. Push button UP activates boost
+		 */
 		handle_buttons();
 		if (powerup_charge > 10) {
 			powerup_charge = 0;
@@ -680,11 +694,13 @@ main(void)
 			}
 			set_leds(led_status);
 		}
-
-		// respond to radio interrupts
-		if (transmit) {
-			// transmit current self position
-			wireless_status = wireless_send_32(false, false, *(uint32_t *)(&send_packet));
+		
+		/*
+		 * respond to radio interrupts
+		 */
+		if (transmit && sender) {
+			// if we are the master, initiate a position packet exchange
+			wireless_status = wireless_send_32(true, false, *(uint32_t *)(&send_packet));
 			if (wireless_status == NRF24L01_TX_SUCCESS) {
 				pkts_sent++;
 			} else if (wireless_status == NRF24L01_TX_PCK_LOST) {
@@ -698,37 +714,50 @@ main(void)
 			if (*((uint32_t *)(&new_packet)) == 0) {
 				spin(true);
 			}
-			if (new_packet.direction != 0xEF) {
-				new_packet.x_pos = 240 - new_packet.x_pos;
-				new_packet.y_pos = 320 - new_packet.y_pos;
-				switch (new_packet.direction & 0xF) {
-					case 0x1 :
-						new_packet.direction = 0x2;
-						break;
-					case 0x2 :
-						new_packet.direction = 0x1;
-						break;
-					case 0x4 :
-						new_packet.direction = 0x8;
-						break;
-					case 0x8 :
-						new_packet.direction = 0x4;
-						break;
-					default :
-						break;
-				}
-				printf("\nx position: %d\ny position: %d\ndirection: %x\n", new_packet.x_pos, new_packet.y_pos, new_packet.direction);
-				// feed the dog
-				WATCHDOG0->LOAD = 750000000;
-				receive = false;
-
-				player2Tron();
-
-				memcpy(&old_packet, &new_packet, sizeof(struct data_packet));
+			
+			// if this is a valid position packet, update remote player position
+			switch (new_packet.direction & 0xF) {
+				case 0x1 :
+					new_packet.direction = 0x2;
+					break;
+				case 0x2 :
+					new_packet.direction = 0x1;
+					break;
+				case 0x4 :
+					new_packet.direction = 0x8;
+					break;
+				case 0x8 :
+					new_packet.direction = 0x4;
+					break;
+				default :
+					goto NO_UPDATE;
 			}
+			new_packet.x_pos = 240 - new_packet.x_pos;
+			new_packet.y_pos = 320 - new_packet.y_pos;
+			player2Tron();
+			memcpy(&old_packet, &new_packet, sizeof(struct data_packet));
+			// feed the dog
+			WATCHDOG0->LOAD = 750000000;
+			
+			// if we are not the master, respond to the packet with our current position
+			if (!sender) {
+				// transmit current self position
+				wireless_status = wireless_send_32(true, false, *(uint32_t *)(&send_packet));
+				if (wireless_status == NRF24L01_TX_SUCCESS) {
+					pkts_sent++;
+				} else if (wireless_status == NRF24L01_TX_PCK_LOST) {
+					pkts_drpd++;
+				}
+			}
+			
+			// if this is not a valid position packet, do not update but still clear receive flag
+			NO_UPDATE:
+			receive = false;
 		}
 
-		// update screen
+		/*
+		 * Update screen on timer0B interrupt
+		 */
 		if (redraw) {
 			// keep player 2 on screen even if there are no packets
 			switch (old_packet.direction & 0xF) {
