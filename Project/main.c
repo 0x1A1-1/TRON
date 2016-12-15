@@ -67,10 +67,11 @@ typedef enum
 static MODES mode_state = MOV_UP;
 static MODES remote_mode_state = MOV_DOWN;
 
-uint8_t dest_id[] = {49,193,100,189,212};
-uint8_t my_id[] = {222,64,200,45,139};
+uint8_t my_id[] = {49,193,100,189,212};
+uint8_t dest_id[] = {222,64,200,45,139};
 
-
+volatile bool self_play = false;
+volatile bool remote_play = false;
 volatile uint16_t x_pos;
 volatile uint16_t y_pos;
 volatile bool redraw = false;
@@ -88,8 +89,6 @@ volatile bool right_pressed = false;
 volatile int powerup_charge = 0;
 volatile uint8_t led_status = 0x80;
 
-volatile uint32_t self_position;
-volatile uint32_t remote_position;
 struct data_packet send_packet, receive_packet;
 //uint16_t lcd_x = 120, lcd_y = 50, receive_packet.x_pos = 120, receive_packet.y_pos = 250 ;
 
@@ -475,9 +474,6 @@ void initialize_hardware(void)
 		50000,
 		50000
 	);
-
-	// initialize and set off the watchdog timer for 15 seconds
-	watchdog_timer_config(WATCHDOG0, 750000000 , false, true, false);
 }
 
 
@@ -643,6 +639,26 @@ main(void)
 
 	memset(&(info.last_game), 0, sizeof(info.last_game));
 
+	while (!self_play || !remote_play) {
+		if (ft6x06_read_td_status() > 0) {
+			if (ft6x06_read_y() < 25) {
+				wireless_status = wireless_send_32(false, false, 0xDEADBEEF);
+				if (wireless_status == NRF24L01_TX_SUCCESS) {
+					pkts_sent++;
+				} else if (wireless_status == NRF24L01_TX_PCK_LOST) {
+					pkts_drpd++;
+				}
+				self_play = true;
+			}
+		}
+		if (*(uint32_t *)(&receive_packet) == 0xDEADBEEF) {
+			remote_play = true;
+		}
+	}
+
+	// initialize and set off the watchdog timer for 15 seconds
+	watchdog_timer_config(WATCHDOG0, 750000000 , false, true, false);
+	
 	// Reach infinite loop
 	while(1){
 		handle_buttons();
