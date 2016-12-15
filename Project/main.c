@@ -642,6 +642,9 @@ main(void)
 		if (receive) {
 			wireless_get_32(false, (uint32_t *)(&receive_packet));
 			receive = false;
+			if (*(uint32_t *)(&receive_packet) == 0xDEADBEEF) {
+				remote_play = true;
+			}
 		}
 		if (ft6x06_read_td_status() > 0) {
 			if (ft6x06_read_y() < 25) {
@@ -653,9 +656,6 @@ main(void)
 				}
 				self_play = true;
 			}
-		}
-		if (*(uint32_t *)(&receive_packet) == 0xDEADBEEF) {
-			remote_play = true;
 		}
 	}
 
