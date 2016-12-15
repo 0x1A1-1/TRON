@@ -32,7 +32,10 @@ extern const uint8_t hor_trail_for_left[];
 extern const uint8_t hor_trail_for_right[];
 extern const uint8_t ver_trail_for_up[];
 extern const uint8_t ver_trail_for_down[];
+extern const uint8_t tron_logo[];
 extern const uint8_t imageWidthPixels;
 extern const uint8_t imageHeightPixels;
+extern const uint8_t tr2n_logoWidthPixels;
+extern const uint8_t tr2n_logoHeightPixels;
 
 #endif
