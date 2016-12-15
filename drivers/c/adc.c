@@ -23,6 +23,8 @@
 #include "adc.h"
 #include "driver_defines.h"
 
+#define MAX_READ_VALUE 0xFFF
+
 bool initialize_adc_interrupt(
 	ADC0_Type *adc,   // ADC base
 	uint8_t seq,      // sample sequencer to use
@@ -261,5 +263,34 @@ uint32_t get_adc_value( uint32_t adc_base, uint8_t channel)
   myADC->ISC  = ADC_ISC_IN3;          // Ack the conversion
   
   return result;
+}
+
+/******************************************************************************
+ * convert reading into value
+ *****************************************************************************/
+uint8_t analog_conversion(uint16_t ps2_x, uint16_t ps2_y)
+{
+	uint16_t new_val=0x12;
+	
+	//Set the value for frequency
+	if(ps2_x > (int)(0.75*MAX_READ_VALUE))	{		
+		new_val &= ~0x18;
+		new_val |= 0x20;
+	}
+	else if(ps2_x < (int)(0.25*MAX_READ_VALUE)){	
+		new_val &= ~0x30;
+		new_val |= 0x8;
+		}
+	if(ps2_y > (int)(0.75*MAX_READ_VALUE))	{	
+		new_val &= ~0x3;
+		new_val |= 0x4;
+		}
+	else if(ps2_y < (int)(0.25*MAX_READ_VALUE)){	
+		new_val &= ~0x6;
+		new_val |= 0x1;
+		}
+	
+	return new_val;
+		
 }
 

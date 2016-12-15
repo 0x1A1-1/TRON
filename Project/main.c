@@ -55,8 +55,21 @@ struct ECE353_info info = {
 	{0,0,0,0,0,0}
 };
 
-uint8_t my_id[] = {0,1,8,9,6};
-uint8_t dest_id[] = {3,1,0,9,5};
+//two modes
+typedef enum
+{
+	MOV_UP,
+	MOV_DOWN,
+	MOV_LEFT,
+	MOV_RIGHT
+} MODES;
+
+static MODES mode_state = MOV_UP;
+static MODES player2_mode_state = MOV_DOWN;
+static MODES player2_previous_state = MOV_DOWN;
+
+uint8_t dest_id[] = {0,1,8,9,6};
+uint8_t my_id[] = {3,1,0,9,5};
 
 volatile uint16_t x_pos;
 volatile uint16_t y_pos;
@@ -201,8 +214,8 @@ void initialize_hardware(void)
 	timer1->CTL |= TIMER_CTL_TAEN;
 	gp_timer_start_16(
 		timer0,
-		1000,
-		1000,
+		1,
+		10,
 		50000,
 		50000
 	);
@@ -213,12 +226,75 @@ void initialize_hardware(void)
 
 //*****************************************************************************
 //*****************************************************************************
+uint32_t bitmap[240][10]={0};
+
+void game_over_check(uint16_t lcd_x, uint16_t lcd_y){
+
+  uint8_t i;
+
+	if ( (lcd_y >= 299 && mode_state==MOV_UP )
+					|| (lcd_y <= 1 && mode_state==MOV_DOWN )
+					|| (lcd_x >= 219 && mode_state==MOV_LEFT )
+					|| (lcd_x <= 1 && mode_state==MOV_RIGHT )				){
+					while(1){}}
+
+
+
+	if(mode_state==MOV_UP)
+  {
+    for(i=0; i<10; i++)
+    {
+       if(bitmap[lcd_x+i][(int)(lcd_y+19)/32] & (1 << ((lcd_y+19)%32)))
+       {
+         while(1){}
+       }
+    }
+  }
+	else if ( mode_state==MOV_DOWN){
+    for(i=0; i<10; i++)
+    {
+       if(bitmap[lcd_x+i][(int)lcd_y/32] & (1 << (lcd_y%32)))
+       {
+         while(1){}
+       }
+    }
+  }
+	else if (mode_state==MOV_LEFT){
+    for(i=0; i<10; i++)
+    {
+       if(bitmap[lcd_x+19][(int)(lcd_y+i)/32] & (1 << ((lcd_y+i)%32)))
+       {
+         while(1){}
+       }
+    }
+  }
+	else
+  {
+    for(i=0; i<10; i++)
+    {
+       if(bitmap[lcd_x][(int)(lcd_y+i)/32] & (1 << ((lcd_y+i)%32)))
+       {
+         while(1){}
+       }
+    }
+  }
+
+}
+
 int
 main(void)
 {
 	i2c_status_t status;
 	int i;
+	bool start=true;
+	uint8_t mov;
+	uint16_t prevPix, x_data, y_data, lcd_x = 120, lcd_y = 50, player2_lcd_x = 120,player2_lcd_y = 250 ;
 	uint8_t test[60];
+	
+	uint8_t left = 0,
+				right = 0,
+				up = 0,
+				down = 0;
 	
 	initialize_hardware();
 	
@@ -247,7 +323,354 @@ main(void)
 	while(1){
 		// update screen
 		if (redraw) {
-			redraw = false;
+			
+			mov = analog_conversion(x_pos, y_pos);
+			if(start)
+			{
+				mov = 0x12;
+				start = false;
+				up=1;
+				lcd_x-=10;
+			}
+			
+			if (mov&0x20 && lcd_x<220){
+					left = 1;
+					right = 0;
+					up = 0;
+					down = 0;
+				}else if (mov&0x8 && lcd_x>0){
+					left = 0;
+					right = 1;
+					up = 0;
+					down = 0;
+				}
+				else if (mov&0x4 && lcd_y<300){
+					left = 0;
+					right = 0;
+					up = 1;
+					down = 0;
+				}else if (mov&0x1 && lcd_y>0){
+					left = 0;
+					right = 0;
+					up = 0;
+					down = 1;
+				}
+
+			 game_over_check(lcd_x, lcd_y);
+			 if(left==1)
+				 {
+				   if(mode_state==MOV_UP){
+								lcd_draw_image(
+										lcd_x,                 // X Pos
+										imageWidthPixels,   // Image Horizontal Width
+										lcd_y,                 // Y Pos
+										imageHeightPixels,  // Image Vertical Height
+										ver_trail_for_up,       // Image
+										LCD_COLOR_BLUE2,      // Foreground Color
+										LCD_COLOR_BLACK     // Background Color
+									);
+
+								for(i=0; i<16; i++)
+								{
+									bitmap[lcd_x+4][(int)(lcd_y+i)/32] |= 1 << ((lcd_y+i)%32);
+									bitmap[lcd_x+5][(int)(lcd_y+i)/32] |= 1 << ((lcd_y+i)%32);
+								}
+
+								lcd_x += 5;
+								lcd_y += 10;
+					 }
+					 if (mode_state==MOV_DOWN){
+						lcd_draw_image(
+										lcd_x,                 // X Pos
+										imageWidthPixels,   // Image Horizontal Width
+										lcd_y,                 // Y Pos
+										imageHeightPixels,  // Image Vertical Height
+										ver_trail_for_down,       // Image
+										LCD_COLOR_BLUE2,      // Foreground Color
+										LCD_COLOR_BLACK     // Background Color
+									);
+						   	for(i=4; i<20; i++)
+								{
+									bitmap[lcd_x+4][(int)(lcd_y+i)/32] |= 1 << ((lcd_y+i)%32);
+									bitmap[lcd_x+5][(int)(lcd_y+i)/32] |= 1 << ((lcd_y+i)%32);
+								}
+
+							 lcd_x += 5;
+						}
+					//x_max=0;
+          if (lcd_x>220)
+          {
+            lcd_x=220;
+          }
+
+					if (mode_state != MOV_RIGHT){
+						mode_state = MOV_LEFT;
+						player2_mode_state = MOV_RIGHT;
+						//store info
+						bitmap[lcd_x][(int)(lcd_y+4)/32] |= 1 << ((lcd_y+4)%32);
+						bitmap[lcd_x][(int)(lcd_y+5)/32] |= 1 << ((lcd_y+5)%32);
+
+						lcd_x++;
+						lcd_draw_image(
+									lcd_x,                 // X Pos
+									imageHeightPixels,   // Image Horizontal Width
+									lcd_y,                 // Y Pos
+									imageWidthPixels,  // Image Vertical Height
+									tron_left,       // Image
+									LCD_COLOR_BLUE2,      // Foreground Color
+									LCD_COLOR_BLACK     // Background Color
+								);
+					}else{
+						right = 1;
+						left =0;
+						lcd_x--;
+						lcd_draw_image(
+									lcd_x,                 // X Pos
+									imageHeightPixels,   // Image Horizontal Width
+									lcd_y,                 // Y Pos
+									imageWidthPixels,  // Image Vertical Height
+									tron_right,       // Image
+									LCD_COLOR_BLUE2,      // Foreground Color
+									LCD_COLOR_BLACK     // Background Color
+								);
+					}
+
+			 }
+			 else if (right==1)
+			 {
+				  if(mode_state==MOV_UP){
+								lcd_draw_image(
+										lcd_x,                 // X Pos
+										imageWidthPixels,   // Image Horizontal Width
+										lcd_y,                 // Y Pos
+										imageHeightPixels,  // Image Vertical Height
+										ver_trail_for_up,       // Image
+										LCD_COLOR_BLUE2,      // Foreground Color
+										LCD_COLOR_BLACK     // Background Color
+									);
+
+								for(i=0; i<16; i++)
+								{
+									bitmap[lcd_x+4][(int)(lcd_y+i)/32] |= 1 << ((lcd_y+i)%32);
+									bitmap[lcd_x+5][(int)(lcd_y+i)/32] |= 1 << ((lcd_y+i)%32);
+								}
+
+								lcd_x -= 15;
+								lcd_y += 10;
+					 }
+					 if (mode_state==MOV_DOWN){
+						lcd_draw_image(
+										lcd_x,                 // X Pos
+										imageWidthPixels,   // Image Horizontal Width
+										lcd_y,                 // Y Pos
+										imageHeightPixels,  // Image Vertical Height
+										ver_trail_for_down,       // Image
+										LCD_COLOR_BLUE2,      // Foreground Color
+										LCD_COLOR_BLACK     // Background Color
+									);
+								for(i=4; i<20; i++)
+								{
+									bitmap[lcd_x+4][(int)(lcd_y+i)/32] |= 1 << ((lcd_y+i)%32);
+									bitmap[lcd_x+5][(int)(lcd_y+i)/32] |= 1 << ((lcd_y+i)%32);
+								}
+
+							 lcd_x -= 15;
+						}
+            if (lcd_x>=240)
+            {
+              lcd_x=1;
+            }
+
+					if (mode_state != MOV_LEFT){
+					 mode_state = MOV_RIGHT;
+					 player2_mode_state = MOV_LEFT;
+
+					 bitmap[lcd_x+9][(int)(lcd_y+4)/32] |= 1 << ((lcd_y+4)%32);
+					 bitmap[lcd_x+9][(int)(lcd_y+5)/32] |= 1 << ((lcd_y+5)%32);
+
+					 lcd_x--;
+					 lcd_draw_image(
+									lcd_x,                 // X Pos
+									imageHeightPixels,   // Image Horizontal Width
+									lcd_y,                 // Y Pos
+									imageWidthPixels,  // Image Vertical Height
+									tron_right,       // Image
+									LCD_COLOR_BLUE2,      // Foreground Color
+									LCD_COLOR_BLACK     // Background Color
+								);
+					}else{
+						left = 1 ;
+						right = 0;
+						lcd_x++;
+						lcd_draw_image(
+									lcd_x,                 // X Pos
+									imageHeightPixels,   // Image Horizontal Width
+									lcd_y,                 // Y Pos
+									imageWidthPixels,  // Image Vertical Height
+									tron_left,       // Image
+									LCD_COLOR_BLUE2,      // Foreground Color
+									LCD_COLOR_BLACK     // Background Color
+								);
+					}
+
+			 }
+			 else if (up==1)
+			 {
+					 if(mode_state==MOV_LEFT){
+								lcd_draw_image(
+										lcd_x,                 // X Pos
+										imageHeightPixels,   // Image Horizontal Width
+										lcd_y,                 // Y Pos
+										imageWidthPixels,  // Image Vertical Height
+										hor_trail_for_left,       // Image
+										LCD_COLOR_BLUE2,      // Foreground Color
+										LCD_COLOR_BLACK     // Background Color
+									);
+
+								for(i=0; i<16; i++)
+								{
+									bitmap[lcd_x+i][(int)(lcd_y+4)/32] |= 1 << ((lcd_y+4)%32);
+									bitmap[lcd_x+i][(int)(lcd_y+5)/32] |= 1 << ((lcd_y+5)%32);
+								}
+
+								lcd_y += 5;
+								lcd_x += 10;
+					 }
+					 if (mode_state==MOV_RIGHT){
+						lcd_draw_image(
+										lcd_x,                 // X Pos
+										imageHeightPixels,   // Image Horizontal Width
+										lcd_y,                 // Y Pos
+										imageWidthPixels,  // Image Vertical Height
+										hor_trail_for_right,       // Image
+										LCD_COLOR_BLUE2,      // Foreground Color
+										LCD_COLOR_BLACK     // Background Color
+									);
+								for(i=4; i<20; i++)
+								{
+									bitmap[lcd_x+i][(int)(lcd_y+4)/32] |= 1 << ((lcd_y+4)%32);
+									bitmap[lcd_x+i][(int)(lcd_y+5)/32] |= 1 << ((lcd_y+5)%32);
+								}
+
+							 lcd_y += 5;
+						}
+            if (lcd_y>300)
+            {
+              lcd_x=300;
+            }
+
+
+					 if (mode_state != MOV_DOWN){
+						 mode_state = MOV_UP;
+						 player2_mode_state = MOV_DOWN;
+
+						bitmap[lcd_x+4][(int)lcd_y/32] |= 1 << (lcd_y%32);
+						bitmap[lcd_x+5][(int)lcd_y/32] |= 1 << (lcd_y%32);
+
+						 lcd_y++;
+						  lcd_draw_image(
+										lcd_x,                 // X Pos
+										imageWidthPixels,   // Image Horizontal Width
+										lcd_y,                 // Y Pos
+										imageHeightPixels,  // Image Vertical Height
+										tron_up,       // Image
+										LCD_COLOR_BLUE2,      // Foreground Color
+										LCD_COLOR_BLACK     // Background Color
+									);
+						}else{
+							down = 1;
+							up= 0;
+							lcd_y--;
+							lcd_draw_image(
+												lcd_x,                 // X Pos
+												imageWidthPixels,   // Image Horizontal Width
+												lcd_y,                 // Y Pos
+												imageHeightPixels,  // Image Vertical Height
+												tron_down,       // Image
+												LCD_COLOR_BLUE2,      // Foreground Color
+												LCD_COLOR_BLACK     // Background Color
+											);
+						}
+
+			 }
+			 else if (down==1)
+					{
+						if (mode_state == MOV_LEFT){
+							lcd_draw_image(
+										lcd_x,                 // X Pos
+										imageHeightPixels,   // Image Horizontal Width
+										lcd_y,                 // Y Pos
+										imageWidthPixels,  // Image Vertical Height
+										hor_trail_for_left,       // Image
+										LCD_COLOR_BLUE2,      // Foreground Color
+										LCD_COLOR_BLACK     // Background Color
+									);
+								for(i=0; i<16; i++)
+								{
+									bitmap[lcd_x+i][(int)(lcd_y+4)/32] |= 1 << ((lcd_y+4)%32);
+									bitmap[lcd_x+i][(int)(lcd_y+5)/32] |= 1 << ((lcd_y+5)%32);
+								}
+								lcd_y -= 15;
+								lcd_x += 10;
+							}
+						if (mode_state==MOV_RIGHT){
+						lcd_draw_image(
+										lcd_x,                 // X Pos
+										imageHeightPixels,   // Image Horizontal Width
+										lcd_y,                 // Y Pos
+										imageWidthPixels,  // Image Vertical Height
+										hor_trail_for_right,       // Image
+										LCD_COLOR_BLUE2,      // Foreground Color
+										LCD_COLOR_BLACK     // Background Color
+									);
+								for(i=4; i<20; i++)
+								{
+									bitmap[lcd_x+i][(int)(lcd_y+4)/32] |= 1 << ((lcd_y+4)%32);
+									bitmap[lcd_x+i][(int)(lcd_y+5)/32] |= 1 << ((lcd_y+5)%32);
+								}
+							 lcd_y -= 15;
+						}
+
+            if (lcd_y>320)
+            {
+              lcd_y=1;
+            }
+
+						 if (mode_state != MOV_UP){
+							mode_state = MOV_DOWN;
+							 player2_mode_state = MOV_UP;
+
+
+							bitmap[lcd_x+4][(int)(lcd_y+19)/32] |= 1 << ((lcd_y+19)%32);
+							bitmap[lcd_x+5][(int)(lcd_y+19)/32] |= 1 << ((lcd_y+19)%32);
+
+						  lcd_y--;
+							lcd_draw_image(
+												lcd_x,                 // X Pos
+												imageWidthPixels,   // Image Horizontal Width
+												lcd_y,                 // Y Pos
+												imageHeightPixels,  // Image Vertical Height
+												tron_down,       // Image
+												LCD_COLOR_BLUE2,      // Foreground Color
+												LCD_COLOR_BLACK     // Background Color
+											);
+						}else{
+							down = 0;
+							up= 1;
+							lcd_y++;
+							lcd_draw_image(
+												lcd_x,                 // X Pos
+												imageWidthPixels,   // Image Horizontal Width
+												lcd_y,                 // Y Pos
+												imageHeightPixels,  // Image Vertical Height
+												tron_up,       // Image
+												LCD_COLOR_BLUE2,      // Foreground Color
+												LCD_COLOR_BLACK     // Background Color
+											);
+						}
+					}
+					
+					redraw = false;
 		}
 	};
 }

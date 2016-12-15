@@ -73,4 +73,12 @@ bool initialize_adc(  uint32_t adc_base );
  *****************************************************************************/
 uint32_t get_adc_value( uint32_t adc_base, uint8_t channel);
 
+/******************************************************************************
+ * Returns the decision of moving dots
+ *
+ * Returns:
+ *   position variable
+ *****************************************************************************/
+uint8_t analog_conversion(uint16_t ps2_x, uint16_t ps2_y);
+
 #endif

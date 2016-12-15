@@ -24,7 +24,14 @@
 
 #include <stdint.h>
 
-extern const uint8_t imageBitmaps[];
+extern const uint8_t tron_up[];
+extern const uint8_t tron_down[];
+extern const uint8_t tron_left[];
+extern const uint8_t tron_right[];
+extern const uint8_t hor_trail_for_left[];
+extern const uint8_t hor_trail_for_right[];
+extern const uint8_t ver_trail_for_up[];
+extern const uint8_t ver_trail_for_down[];
 extern const uint8_t imageWidthPixels;
 extern const uint8_t imageHeightPixels;
 
