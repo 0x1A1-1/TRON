@@ -194,10 +194,10 @@ static __INLINE void wireless_tx_data_payload(uint32_t data)
 		uint8_t tx_data[5];
 
 		tx_data[0] = command;
-		tx_data[4] = data ;
-		tx_data[3] = data >> 8;
-		tx_data[2] = data >> 16;
-		tx_data[1] = data >> 24;
+		tx_data[4] = (uint8_t)data ;
+		tx_data[3] = (uint8_t)(data >> 8);
+		tx_data[2] = (uint8_t)(data >> 16);
+		tx_data[1] = (uint8_t)(data >> 24);
 
 
 	  //start SPI

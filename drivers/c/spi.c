@@ -145,7 +145,7 @@ void spiTx(uint32_t base, uint8_t *tx_data, int num_bytes, uint8_t *rx_data)
   SSI0_Type *mySSI = (SSI0_Type *) base;
   
   // Wait until the transmit is finished
-  while((mySSI->SR & SSI_SR_TFE)!= 1){};
+  while((mySSI->SR & SSI_SR_TFE) != 1){};
 
   // Disable the SSI interface
   mySSI->CR1 &= ~SSI_CR1_SSE;
@@ -164,7 +164,7 @@ void spiTx(uint32_t base, uint8_t *tx_data, int num_bytes, uint8_t *rx_data)
   
   for( count = 0; count < num_bytes; count++)
   {
-    // Wait until the recieve has finished  
+    // Wait until the recieve has finished
     while((mySSI->SR & SSI_SR_RNE)==0){};// wait until response
 
     // Store the results  
