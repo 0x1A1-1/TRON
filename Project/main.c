@@ -89,7 +89,7 @@ volatile bool right_pressed = false;
 volatile int powerup_charge = 0;
 volatile uint8_t led_status = 0x80;
 
-struct data_packet send_packet, receive_packet;
+struct data_packet send_packet, remote_packet, receive_packet;
 //uint16_t lcd_x = 120, lcd_y = 50, receive_packet.x_pos = 120, receive_packet.y_pos = 250 ;
 
 ADC0_Type *adc = (ADC0_Type *) PS2_ADC_BASE;
@@ -166,7 +166,74 @@ void WDT0_Handler(void) {
 
 //player 2 drawing
 void player2Tron(){
+
 	uint8_t up = 0, down=0, left = 0, right = 0;
+	uint8_t i ;
+	bool straight_line = false;
+
+	if(remote_packet.x_pos!=receive_packet.x_pos || )
+	{
+		if(remote_packet.x_pos<receive_packet.x_pos)
+		{
+			for (i=remote_packet.x_pos; i<receive_packet.x_pos; i++)
+			{
+				lcd_draw_image(
+							i,                 // X Pos
+							imageHeightPixels,   // Image Horizontal Width
+							receive_packet.y_pos,                 // Y Pos
+							imageWidthPixels,  // Image Vertical Height
+							tron_left,       // Image
+							LCD_COLOR_RED,      // Foreground Color
+							LCD_COLOR_BLACK     // Background Color
+						);
+			}
+		}
+		else if(remote_packet.x_pos>receive_packet.x_pos)
+		{
+			for (i=remote_packet.x_pos; i>receive_packet.x_pos; i--)
+			{
+				lcd_draw_image(
+							i,                 // X Pos
+							imageHeightPixels,   // Image Horizontal Width
+							receive_packet.y_pos,                 // Y Pos
+							imageWidthPixels,  // Image Vertical Height
+							tron_right,       // Image
+							LCD_COLOR_RED,      // Foreground Color
+							LCD_COLOR_BLACK     // Background Color
+						);
+			}
+		}
+		else if(remote_packet.y_pos<receive_packet.y_pos)
+		{
+			for (i=remote_packet.y_pos; i<receive_packet.y_pos; i++)
+			{
+				lcd_draw_image(
+						receive_packet.x_pos,                 // X Pos
+						imageWidthPixels,   // Image Horizontal Width
+						i,                 // Y Pos
+						imageHeightPixels,  // Image Vertical Height
+						ver_trail_for_up,       // Image
+						LCD_COLOR_RED,      // Foreground Color
+						LCD_COLOR_BLACK     // Background Color
+					);
+			}
+		}
+		else if(remote_packet.y_pos>receive_packet.y_pos)
+		{
+			for (i=remote_packet.y_pos; i>receive_packet.y_pos; i--)
+			{
+				lcd_draw_image(
+						receive_packet.x_pos,                 // X Pos
+						imageWidthPixels,   // Image Horizontal Width
+						i,                 // Y Pos
+						imageHeightPixels,  // Image Vertical Height
+						ver_trail_for_down,       // Image
+						LCD_COLOR_RED,      // Foreground Color
+						LCD_COLOR_BLACK     // Background Color
+					);
+			}
+		}
+	}
 
 	if(receive_packet.direction & 1<<4){
 		left = 1;
@@ -407,7 +474,7 @@ void GPIOD_Handler(void) {
 	pkts_rcvd++;
 
 	receive = true;
-	
+
 	// trigger player 2 handling
 	handle_player2 = true;
 
@@ -635,7 +702,7 @@ main(void)
 	printf("Number of Turns:         %llu\n\n", info.last_game.turns);
 
 	memset(&(info.last_game), 0, sizeof(info.last_game));
-	
+
 	while (!self_play || !remote_play) {
 		if (receive) {
 			wireless_get_32(false, (uint32_t *)&startup);
@@ -658,12 +725,12 @@ main(void)
 			}
 		}
 	}
-	
+
 	printf("started\n");
-	
+
 	// initialize and set off the watchdog timer for 15 seconds
 	watchdog_timer_config(WATCHDOG0, 750000000 , false, true, false);
-	
+
 	// Reach infinite loop
 	while(1){
 		handle_buttons();
@@ -718,12 +785,12 @@ main(void)
 			WATCHDOG0->LOAD = 750000000;
 			receive = false;
 		}
-		
+
 		if (handle_player2) {
 			//player2Tron
 			player2Tron();
 		}
-		
+
 		// update screen
 		if (redraw) {
 
