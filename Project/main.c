@@ -67,8 +67,8 @@ typedef enum
 
 static MODES mode_state = MOV_UP;
 
-uint8_t dest_id[] = {49,193,100,189,212};
-uint8_t my_id[] = {222,64,200,45,139};
+uint8_t my_id[] = {49,193,100,189,212};
+uint8_t dest_id[] = {222,64,200,45,139};
 
 volatile bool self_play = false;
 volatile bool remote_play = false;
@@ -86,6 +86,7 @@ volatile bool up_pressed = false;
 volatile bool down_pressed = false;
 volatile bool left_pressed = false;
 volatile bool right_pressed = false;
+volatile bool boost = false;
 volatile int powerup_charge = 0;
 volatile uint8_t led_status = 0x80;
 
@@ -489,8 +490,9 @@ void handle_buttons(void) {
 			info.last_game.boosts_type0++;
 			led_status = 0x80;
 			set_leds(led_status);
+			boost = true;
 		}
-		up_pressed = false;
+		up_pressed=false;
 	}
 	if (down_pressed) {
 		printf("\n********\n* down *\n********\n");
@@ -547,12 +549,17 @@ main(void)
 		LCD_COLOR_BLUE2,       // Foreground Color
 		LCD_COLOR_BLACK        // Background Color
 	);
-	
-	receive_packet.x_pos = 120;
-	receive_packet.y_pos = 160;
-	receive_packet.direction = 0x01;
-	
-/*
+
+	lcd_draw_image(
+		0,                 // X Pos
+		start_button_WidthPixels,   // Image Horizontal Width
+		50,                 // Y Pos
+		start_button_HeightPixels,  // Image Vertical Height
+		start_button,       // Image
+		LCD_COLOR_CYAN,      // Foreground Color
+		LCD_COLOR_GRAY     // Background Color
+	);
+
 	while (!self_play || !remote_play) {
 		if (receive) {
 			wireless_get_32(false, (uint32_t *)&startup);
@@ -564,7 +571,7 @@ main(void)
 			}
 		}
 		if (ft6x06_read_td_status() > 0) {
-			if (ft6x06_read_y() < 25) {
+			if (ft6x06_read_y() < 100 && ft6x06_read_y() > 50 && ft6x06_read_x() < 140 && ft6x06_read_x() > 0) {
 				wireless_status = wireless_send_32(false, false, 0xBEEF);
 				if (wireless_status == NRF24L01_TX_SUCCESS) {
 					pkts_sent++;
@@ -575,7 +582,8 @@ main(void)
 			}
 		}
 	}
-*/
+	
+	lcd_clear_screen(LCD_COLOR_BLACK);
 	printf("started\n");
 
 	// initialize and set off the watchdog timer for 15 seconds
@@ -631,7 +639,7 @@ main(void)
 			transmit = false;
 		}
 		if (receive) {
-			wireless_get_32(false, (uint32_t *)&receive_packet);
+			wireless_get_32(false, (uint32_t *)&new_packet);
 			// feed the dog
 			WATCHDOG0->LOAD = 750000000;
 			receive = false;
@@ -743,6 +751,24 @@ main(void)
 									LCD_COLOR_BLUE2,      // Foreground Color
 									LCD_COLOR_BLACK     // Background Color
 								);
+						if(boost)
+						{
+							boost = false;
+							for(i=0; i<10 ;i++)
+							{
+								lcd_draw_image(
+									send_packet.x_pos+i,                 // X Pos
+									imageHeightPixels,   // Image Horizontal Width
+									send_packet.y_pos,                 // Y Pos
+									imageWidthPixels,  // Image Vertical Height
+									tron_right,       // Image
+									LCD_COLOR_BLUE2,      // Foreground Color
+									LCD_COLOR_BLACK     // Background Color
+								);
+							}
+							send_packet.x_pos+=9;
+						}
+						
 					}else{
 						right = 1;
 						left =0;
@@ -820,6 +846,24 @@ main(void)
 									LCD_COLOR_BLUE2,      // Foreground Color
 									LCD_COLOR_BLACK     // Background Color
 								);
+						if(boost)
+						{
+							boost = false;
+							for(i=0; i<10 ;i++)
+							{
+								lcd_draw_image(
+									send_packet.x_pos-i,                 // X Pos
+									imageHeightPixels,   // Image Horizontal Width
+									send_packet.y_pos,                 // Y Pos
+									imageWidthPixels,  // Image Vertical Height
+									tron_left,       // Image
+									LCD_COLOR_BLUE2,      // Foreground Color
+									LCD_COLOR_BLACK     // Background Color
+								);
+							}
+							send_packet.x_pos-=9;						
+						}
+						
 					}else{
 						left = 1 ;
 						right = 0;
@@ -897,6 +941,23 @@ main(void)
 										LCD_COLOR_BLUE2,      // Foreground Color
 										LCD_COLOR_BLACK     // Background Color
 									);
+						 if(boost)
+						 {
+							boost = false;
+							for(i=0; i<10 ;i++)
+							{
+								lcd_draw_image(
+										send_packet.x_pos,                 // X Pos
+										imageWidthPixels,   // Image Horizontal Width
+										send_packet.y_pos+i,                 // Y Pos
+										imageHeightPixels,  // Image Vertical Height
+										tron_down,       // Image
+										LCD_COLOR_BLUE2,      // Foreground Color
+										LCD_COLOR_BLACK     // Background Color
+									);
+							}
+							send_packet.y_pos+=9;
+						 }
 						}else{
 							down = 1;
 							up= 0;
@@ -973,6 +1034,23 @@ main(void)
 												LCD_COLOR_BLUE2,      // Foreground Color
 												LCD_COLOR_BLACK     // Background Color
 											);
+							 if(boost)
+							 {
+								boost = false;
+								for(i=0; i<10 ;i++)
+								{
+									lcd_draw_image(
+											send_packet.x_pos,                 // X Pos
+											imageWidthPixels,   // Image Horizontal Width
+											send_packet.y_pos-i,                 // Y Pos
+											imageHeightPixels,  // Image Vertical Height
+											tron_up,       // Image
+											LCD_COLOR_BLUE2,      // Foreground Color
+											LCD_COLOR_BLACK     // Background Color
+										);
+								}
+								send_packet.y_pos-=9;
+							 }
 						}else{
 							down = 0;
 							up= 1;
