@@ -569,6 +569,8 @@ main(void)
 	volatile uint32_t startup = 0;
 	wireless_com_status_t wireless_status;
 	int i;
+	uint8_t touch_status;
+	uint16_t touch_x, touch_y;
 	bool start=true;
 	uint8_t mov;
 	uint8_t up = 0, down = 0, left = 0, right = 0;
@@ -636,49 +638,80 @@ main(void)
 		LCD_COLOR_GRAY     // Background Color
 	);
 	
+	lcd_draw_image(
+		0,                 // X Pos
+		start_button_WidthPixels,   // Image Horizontal Width
+		0,                 // Y Pos
+		start_button_HeightPixels,  // Image Vertical Height
+		start_button,       // Image
+		LCD_COLOR_CYAN,      // Foreground Color
+		LCD_COLOR_RED     // Background Color
+	);
+	
 	/**********************************************************
 	 * Start-of-game handshake establishes a master and slave *
 	 **********************************************************/
 	while (1) {
-		// upon receiving, check if it's a command or ack
-		if (receive) {
-			wireless_get_32(false, (uint32_t *)(&startup));
-			receive = false;
-			if (ready) {
-				if (startup == 0xBEEF) {
-					sender = true;
-					goto START;
-				}
-				if (startup == 0xDEAD) {
-					wireless_status = wireless_send_32(true, true, 0xBEEF);
-					if (wireless_status == NRF24L01_TX_SUCCESS) {
-						sender = false;
-						goto START;
-					}
-				}
-			}
+		touch_status = ft6x06_read_td_status();
+		touch_x = ft6x06_read_x();
+		touch_y = ft6x06_read_y();
+		
+		// upon player touch, become ready to play
+		if (touch_status > 0 &&
+			touch_x < 140 &&
+			touch_x > 0 &&
+			touch_y < 100 &&
+			touch_y > 50)
+		{
+			ready = true;
+			sender = true;
+		}
+		if (touch_status > 0 &&
+			touch_x < 140 &&
+			touch_x > 0 &&
+			touch_y < 50 &&
+			touch_y > 0)
+		{
+			ready = true;
+			sender = true;
 		}
 		
-		// upon player touch, become ready to play and ask for an ack
-		if (ft6x06_read_td_status > 0 &&
-			ft6x06_read_x() < 140 &&
-			ft6x06_read_x() > 0 &&
-			ft6x06_read_y() < 100 &&
-			ft6x06_read_y() > 50)
-		{
-			// wait for trasmit interrupt
-			while (!transmit);
-			transmit = false;
-			
+		if (ready && send) {
 			wireless_status = wireless_send_32(true, false, 0xDEAD);
 			if (wireless_status == NRF24L01_TX_SUCCESS) {
 				pkts_sent++;
 			} else if (wireless_status == NRF24L01_TX_PCK_LOST) {
 				pkts_drpd++;
 			}
-			ready = true;
-			sender = true;
 		}
+		
+		if (ready && receive) {
+			wireless_get_32(true, (uint32_t *)(&startup));
+			if (startup == 0xDEAD) {
+				goto START;
+			}
+		}
+		/*
+		if (ready && sender) {
+			wireless_status = wireless_send_32(true, false, 0xDEAD);
+			if (wireless_status == NRF24L01_TX_SUCCESS) {
+				pkts_sent++;
+			} else if (wireless_status == NRF24L01_TX_PCK_LOST) {
+				pkts_drpd++;
+			}
+		}
+		// upon receiving, check if it's a command or ack
+		if (ready && receive) {
+			wireless_get_32(true, (uint32_t *)(&startup));
+			
+			if (sender && startup == 0xBEEF) goto START;
+			if (!sender && startup == 0xDEAD) {
+				wireless_status = wireless_send_32(true, true, 0xBEEF);
+				if (wireless_status == NRF24L01_TX_SUCCESS) {
+					goto START;
+				}
+			}
+		}*/
 	}
 	
 	/****************************************************************************
