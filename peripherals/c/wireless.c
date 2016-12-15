@@ -190,7 +190,7 @@ static __INLINE void wireless_tx_data_payload(uint32_t data)
 {
 		//set command to send via SPITX
 		uint8_t command = NRF24L01_CMD_W_TX_PAYLOAD;
-		uint8_t random;
+		uint8_t random[5];
 		uint8_t tx_data[5];
 
 		tx_data[0] = command;
@@ -204,13 +204,11 @@ static __INLINE void wireless_tx_data_payload(uint32_t data)
 		wireless_CSN_low();
 
 		//send 8 bits  data to receive
-		spiTx(RF_SPI_BASE, tx_data, 5, &random);
+		spiTx(RF_SPI_BASE, tx_data, 5, random);
 
 		//end SPI
 		wireless_CSN_high();
 }
-
-
 
 //*****************************************************************************
 // ADD CODE
@@ -236,11 +234,6 @@ static __INLINE void wireless_rx_data_payload( uint32_t *data)
 		//set first byte as commmand
 		tx_data[0]=command;
 
-		//create rest part of dont care tx
-		for(i=1; i<5; i++){
-			tx_data[i] = 0;
-		}
-
 	  //start SPI
 		wireless_CSN_low();
 
@@ -251,7 +244,7 @@ static __INLINE void wireless_rx_data_payload( uint32_t *data)
 
 		//transfer the return data
 		for(i=1; i<5; i++){
-			*data = rx_data[i] << ((4-i)*8);
+			*data |= rx_data[i] << ((4-i)*8);
 		}
 
 		//end SPI

@@ -67,8 +67,8 @@ typedef enum
 static MODES mode_state = MOV_UP;
 static MODES remote_mode_state = MOV_DOWN;
 
-uint8_t my_id[] = {49,193,100,189,212};
-uint8_t dest_id[] = {222,64,200,45,139};
+uint8_t dest_id[] = {49,193,100,189,212};
+uint8_t my_id[] = {222,64,200,45,139};
 
 volatile bool self_play = false;
 volatile bool remote_play = false;
@@ -407,9 +407,6 @@ void GPIOD_Handler(void) {
 	pkts_rcvd++;
 
 	receive = true;
-
-	// feed the dog
-	WATCHDOG0->LOAD = 750000000;
 	
 	// trigger player 2 handling
 	handle_player2 = true;
@@ -610,6 +607,7 @@ void handle_buttons(void) {
 int
 main(void)
 {
+	volatile uint32_t startup = 0;
 	wireless_com_status_t wireless_status;
 	int i;
 	bool start=true;
@@ -640,15 +638,17 @@ main(void)
 	
 	while (!self_play || !remote_play) {
 		if (receive) {
-			wireless_get_32(false, (uint32_t *)(&receive_packet));
+			wireless_get_32(false, (uint32_t *)&startup);
 			receive = false;
-			if (*(uint32_t *)(&receive_packet) == 0xDEADBEEF) {
+			printf("0x%X\n", startup);
+			if (startup == 0xBEEF) {
+				printf("got correct packet\n");
 				remote_play = true;
 			}
 		}
 		if (ft6x06_read_td_status() > 0) {
 			if (ft6x06_read_y() < 25) {
-				wireless_status = wireless_send_32(false, false, 0xDEADBEEF);
+				wireless_status = wireless_send_32(false, false, 0xBEEF);
 				if (wireless_status == NRF24L01_TX_SUCCESS) {
 					pkts_sent++;
 				} else if (wireless_status == NRF24L01_TX_PCK_LOST) {
@@ -658,7 +658,9 @@ main(void)
 			}
 		}
 	}
-
+	
+	printf("started\n");
+	
 	// initialize and set off the watchdog timer for 15 seconds
 	watchdog_timer_config(WATCHDOG0, 750000000 , false, true, false);
 	
@@ -712,6 +714,8 @@ main(void)
 		}
 		if (receive) {
 			wireless_get_32(false, (uint32_t *)&receive_packet);
+			// feed the dog
+			WATCHDOG0->LOAD = 750000000;
 			receive = false;
 		}
 		
