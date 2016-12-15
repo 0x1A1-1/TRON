@@ -70,7 +70,7 @@ static MODES remote_mode_state = MOV_DOWN;
 uint8_t dest_id[] = {49,193,100,189,212};
 uint8_t my_id[] = {222,64,200,45,139};
 
-
+volatile bool play = false;
 volatile uint16_t x_pos;
 volatile uint16_t y_pos;
 volatile bool redraw = false;
@@ -643,6 +643,10 @@ main(void)
 
 	memset(&(info.last_game), 0, sizeof(info.last_game));
 
+
+	while(~play)
+	{
+	}
 	// Reach infinite loop
 	while(1){
 		handle_buttons();
@@ -716,15 +720,6 @@ main(void)
 				receive_packet.x_pos=120;
 				receive_packet.y_pos=270;
 
-				lcd_draw_image(
-										0,                 // X Pos
-										tr2n_logoWidthPixels,   // Image Horizontal Width
-										250,                 // Y Pos
-										tr2n_logoHeightPixels,  // Image Vertical Height
-										tron_logo,       // Image
-										LCD_COLOR_BLUE2,      // Foreground Color
-										LCD_COLOR_BLACK     // Background Color
-									);
 			}
 
 			if (mov&0x20 && send_packet.x_pos<220){
