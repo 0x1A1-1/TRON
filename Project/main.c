@@ -639,6 +639,10 @@ main(void)
 	memset(&(info.last_game), 0, sizeof(info.last_game));
 	
 	while (!self_play || !remote_play) {
+		if (receive) {
+			wireless_get_32(false, (uint32_t *)(&receive_packet));
+			receive = false;
+		}
 		if (ft6x06_read_td_status() > 0) {
 			if (ft6x06_read_y() < 25) {
 				wireless_status = wireless_send_32(false, false, 0xDEADBEEF);
