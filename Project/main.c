@@ -682,7 +682,7 @@ main(void)
 
 		if (transmit) {
 			// transmit current self position
-			wireless_status = wireless_send_32(false, false, self_position);
+			wireless_status = wireless_send_32(false, false, *(uint32_t *)(&send_packet));
 			if (wireless_status == NRF24L01_TX_SUCCESS) {
 				pkts_sent++;
 			} else if (wireless_status == NRF24L01_TX_PCK_LOST) {
@@ -692,7 +692,7 @@ main(void)
 			transmit = false;
 		}
 		if (receive) {
-			wireless_get_32(false, (uint32_t *)&remote_position);
+			wireless_get_32(false, (uint32_t *)&receive_packet);
 			receive = false;
 		}
 		
