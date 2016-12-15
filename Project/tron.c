@@ -3,7 +3,7 @@
 void tron_draw_up(unsigned int curr_x, unsigned int curr_y, bool remote, bool box) {
 	uint16_t fg_color;
 	uint16_t bg_color;
-	
+
 	if (remote) {
 		fg_color = REMOTE_FG;
 		bg_color = REMOTE_BG;
@@ -14,7 +14,7 @@ void tron_draw_up(unsigned int curr_x, unsigned int curr_y, bool remote, bool bo
 	if (box) {
 		fg_color = bg_color;
 	}
-	
+
 	lcd_draw_image(
 		curr_x-5,
 		10,
@@ -29,7 +29,7 @@ void tron_draw_up(unsigned int curr_x, unsigned int curr_y, bool remote, bool bo
 void tron_draw_down(unsigned int curr_x, unsigned int curr_y, bool remote, bool box) {
 	uint16_t fg_color;
 	uint16_t bg_color;
-	
+
 	if (remote) {
 		fg_color = REMOTE_FG;
 		bg_color = REMOTE_BG;
@@ -40,7 +40,7 @@ void tron_draw_down(unsigned int curr_x, unsigned int curr_y, bool remote, bool 
 	if (box) {
 		fg_color = bg_color;
 	}
-	
+
 	lcd_draw_image(
 		curr_x-5,
 		10,
@@ -55,7 +55,7 @@ void tron_draw_down(unsigned int curr_x, unsigned int curr_y, bool remote, bool 
 void tron_draw_left(unsigned int curr_x, unsigned int curr_y, bool remote, bool box) {
 	uint16_t fg_color;
 	uint16_t bg_color;
-	
+
 	if (remote) {
 		fg_color = REMOTE_FG;
 		bg_color = REMOTE_BG;
@@ -66,7 +66,7 @@ void tron_draw_left(unsigned int curr_x, unsigned int curr_y, bool remote, bool 
 	if (box) {
 		fg_color = bg_color;
 	}
-	
+
 	lcd_draw_image(
 		curr_x,
 		20,
@@ -81,7 +81,7 @@ void tron_draw_left(unsigned int curr_x, unsigned int curr_y, bool remote, bool 
 void tron_draw_right(unsigned int curr_x, unsigned int curr_y, bool remote, bool box) {
 	uint16_t fg_color;
 	uint16_t bg_color;
-	
+
 	if (remote) {
 		fg_color = REMOTE_FG;
 		bg_color = REMOTE_BG;
@@ -92,7 +92,7 @@ void tron_draw_right(unsigned int curr_x, unsigned int curr_y, bool remote, bool
 	if (box) {
 		fg_color = bg_color;
 	}
-	
+
 	lcd_draw_image(
 		curr_x-20,
 		20,
@@ -165,7 +165,7 @@ void tron_update_bitmap_lr(unsigned int curr_x, unsigned int curr_y, uint32_t bi
 
 void tron_update_bitmap_ud(unsigned int curr_x, unsigned int curr_y, uint32_t bitmap[240][10]) {
 	int i;
-	
+
 	for (i=curr_x-5; i<curr_x+5; i++) {
 		bitmap[curr_x][(int)(curr_y/32)] |= 0x1 << (curr_y % 32);
 	}

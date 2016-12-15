@@ -169,10 +169,10 @@ void WDT0_Handler(void) {
 void player2Tron(){
 	unsigned int curr_x;
 	unsigned int curr_y;
-	
+
 	curr_x = old_packet.x_pos;
 	curr_y = old_packet.y_pos;
-	
+
 	switch (old_packet.direction & 0xF) {
 		case 0x1 :
 			// go to smallest y-value
@@ -566,6 +566,16 @@ main(void)
 
 	lcd_draw_image(
 		0,                 // X Pos
+		tr2n_logoWidthPixels,   // Image Horizontal Width
+		130,                 // Y Pos
+		circuitHeightPixels,  // Image Vertical Height
+		circuit,       // Image
+		LCD_COLOR_BLUE2,      // Foreground Color
+		LCD_COLOR_BLACK     // Background Color
+	);
+
+	lcd_draw_image(
+		0,                 // X Pos
 		start_button_WidthPixels,   // Image Horizontal Width
 		50,                 // Y Pos
 		start_button_HeightPixels,  // Image Vertical Height
@@ -573,15 +583,15 @@ main(void)
 		LCD_COLOR_CYAN,      // Foreground Color
 		LCD_COLOR_GRAY     // Background Color
 	);
-	
+
 	old_packet.x_pos = 120;
 	old_packet.y_pos = 272;
 	old_packet.direction = 0x1;
-	
+
 	new_packet.x_pos = 120;
 	new_packet.y_pos = 271;
 	new_packet.direction = 0x1;
-	
+
 	while (!self_play || !remote_play) {
 		if (receive) {
 			wireless_get_32(false, (uint32_t *)&startup);
@@ -602,12 +612,12 @@ main(void)
 			}
 		}
 	}
-	
+
 	lcd_clear_screen(LCD_COLOR_BLACK);
 
 	// initialize and set off the watchdog timer for 15 seconds
 	watchdog_timer_config(WATCHDOG0, 750000000 , false, true, false);
-	
+
 	// filter out start packets
 	/*while(1) {
 		if (receive) {
@@ -630,7 +640,7 @@ main(void)
 			receive = false;
 		}
 	}*/
-	
+
 	printf("\n*********************\n");
 	printf("** start main loop **\n");
 	printf("*********************\n");
@@ -670,7 +680,7 @@ main(void)
 			}
 			set_leds(led_status);
 		}
-		
+
 		// respond to radio interrupts
 		if (transmit) {
 			// transmit current self position
@@ -711,9 +721,9 @@ main(void)
 				// feed the dog
 				WATCHDOG0->LOAD = 750000000;
 				receive = false;
-				
+
 				player2Tron();
-				
+
 				memcpy(&old_packet, &new_packet, sizeof(struct data_packet));
 			}
 		}
@@ -735,7 +745,7 @@ main(void)
 					tron_draw_left(old_packet.x_pos, old_packet.y_pos, true, false);
 					break;
 			}
-			
+
 			mov = analog_conversion(x_pos, y_pos);
 			if(start)
 			{
@@ -854,7 +864,7 @@ main(void)
 							}
 							send_packet.x_pos+=9;
 						}
-						
+
 					}else{
 						right = 1;
 						left =0;
@@ -947,9 +957,9 @@ main(void)
 									LCD_COLOR_BLACK     // Background Color
 								);
 							}
-							send_packet.x_pos-=9;						
+							send_packet.x_pos-=9;
 						}
-						
+
 					}else{
 						left = 1 ;
 						right = 0;
