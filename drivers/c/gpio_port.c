@@ -79,7 +79,7 @@ IRQn_Type gpio_get_irq_num(uint32_t base)
      }
      default:
      {
-       return 0;
+       return (IRQn_Type)0;
      }
    }
 }

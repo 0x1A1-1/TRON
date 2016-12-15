@@ -611,7 +611,6 @@ int
 main(void)
 {
 	wireless_com_status_t wireless_status;
-	i2c_status_t status;
 	int i;
 	bool start=true;
 	uint8_t mov;
@@ -638,7 +637,7 @@ main(void)
 	printf("Number of Turns:         %llu\n\n", info.last_game.turns);
 
 	memset(&(info.last_game), 0, sizeof(info.last_game));
-
+	
 	while (!self_play || !remote_play) {
 		if (ft6x06_read_td_status() > 0) {
 			if (ft6x06_read_y() < 25) {
@@ -732,15 +731,6 @@ main(void)
 				receive_packet.x_pos=120;
 				receive_packet.y_pos=270;
 
-				lcd_draw_image(
-										0,                 // X Pos
-										tr2n_logoWidthPixels,   // Image Horizontal Width
-										250,                 // Y Pos
-										tr2n_logoHeightPixels,  // Image Vertical Height
-										tron_logo,       // Image
-										LCD_COLOR_BLUE2,      // Foreground Color
-										LCD_COLOR_BLACK     // Background Color
-									);
 			}
 
 			if (mov&0x20 && send_packet.x_pos<220){

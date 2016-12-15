@@ -178,9 +178,6 @@ int fgetc(FILE* stream)
 // ****************************************************************************/
 int fputc(int c, FILE* stream)
 {
-   uint32_t uart_base;
-   PC_Buffer *tx_buffer;
-
    if ( Tx_Interrupts_Enabled)
    {
       serial_debug_tx(UART0_BASE, &UART0_Tx_Buffer, c);
@@ -235,8 +232,7 @@ __INLINE static void UART_Rx_Flow(uint32_t uart_base, PC_Buffer *rx_buffer)
 //*****************************************************************************
 __INLINE static void UART_Tx_Flow(uint32_t uart_base, PC_Buffer *tx_buffer)
 {
-    UART0_Type *uart = (UART0_Type *)(uart_base);    
-    char c;
+    UART0_Type *uart = (UART0_Type *)(uart_base);
     bool tx_buffer_empty;
   
    // ADD CODE   

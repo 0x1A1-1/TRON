@@ -294,7 +294,7 @@ void test_eeprom(void)
   // Write data to the EEPROM
   for(i = 0; i < EEPROM_TEST_NUM_BYTES; i++)
   {
-    write_data[i] = rand();
+    write_data[i] = i;
     eeprom_byte_write(EEPROM_I2C_BASE,i,write_data[i]);
   }
 
@@ -326,4 +326,3 @@ void test_eeprom(void)
   
 		printf("==== Stopping EEPROM Test ====\n\n\r");
 }
-
