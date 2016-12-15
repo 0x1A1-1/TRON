@@ -86,6 +86,7 @@ volatile bool up_pressed = false;
 volatile bool down_pressed = false;
 volatile bool left_pressed = false;
 volatile bool right_pressed = false;
+volatile bool boost = false;
 volatile int powerup_charge = 0;
 volatile uint8_t led_status = 0x80;
 
@@ -163,6 +164,276 @@ void WDT0_Handler(void) {
 
 	while(1);
 }
+
+//player 2 drawing
+void player2Tron(){
+
+	uint8_t up = 0, down=0, left = 0, right = 0;
+	uint8_t i ;
+
+	uint16_t received_x_pos, received_y_pos;
+
+	received_x_pos = 240 - received_x_pos;
+	received_y_pos = 320 - received_y_pos;
+
+	if(remote_mode_state==MOV_LEFT || remote_mode_state==MOV_RIGHT)
+	{
+		if(remote_packet.x_pos<received_x_pos)
+		{
+			for (i=remote_packet.x_pos; i<received_x_pos+1; i++)
+			{
+				lcd_draw_image(
+							i,                 // X Pos
+							imageHeightPixels,   // Image Horizontal Width
+							received_y_pos,                 // Y Pos
+							imageWidthPixels,  // Image Vertical Height
+							tron_left,       // Image
+							LCD_COLOR_RED,      // Foreground Color
+							LCD_COLOR_BLACK     // Background Color
+						);
+			}
+			printf("Stuck at point 1");
+		}
+		else if(remote_packet.x_pos>received_x_pos)
+		{
+			for (i=remote_packet.x_pos; i>received_x_pos-1; i--)
+			{
+				lcd_draw_image(
+							i,                 // X Pos
+							imageHeightPixels,   // Image Horizontal Width
+							received_y_pos,                 // Y Pos
+							imageWidthPixels,  // Image Vertical Height
+							tron_right,       // Image
+							LCD_COLOR_RED,      // Foreground Color
+							LCD_COLOR_BLACK     // Background Color
+						);
+				printf("Stuck at point 2");
+			}
+		}
+		remote_packet.x_pos = received_x_pos;
+		printf("Got in LR mode");
+	}
+	else if (remote_mode_state==MOV_UP || remote_mode_state==MOV_DOWN)
+	{
+	  if(remote_packet.y_pos<received_y_pos)
+		{
+			for (i=remote_packet.y_pos; i<received_y_pos+1; i++)
+			{
+				lcd_draw_image(
+						received_x_pos,                 // X Pos
+						imageWidthPixels,   // Image Horizontal Width
+						i,                 // Y Pos
+						imageHeightPixels,  // Image Vertical Height
+						tron_up,       // Image
+						LCD_COLOR_RED,      // Foreground Color
+						LCD_COLOR_BLACK     // Background Color
+					);
+				printf("Stuck at point 3");
+			}
+		}
+		else if(remote_packet.y_pos>received_y_pos)
+		{
+			for (i=remote_packet.y_pos; i>received_y_pos-1; i--)
+			{
+				lcd_draw_image(
+						received_x_pos,                 // X Pos
+						imageWidthPixels,   // Image Horizontal Width
+						i,                 // Y Pos
+						imageHeightPixels,  // Image Vertical Height
+						tron_down,       // Image
+						LCD_COLOR_RED,      // Foreground Color
+						LCD_COLOR_BLACK     // Background Color
+					);
+				printf("Stuck at point 2");
+			}
+		}
+		remote_packet.y_pos = received_y_pos;
+		printf("Got in UD mode");
+	}
+
+	if(receive_packet.direction & 1<<4 && remote_mode_state!=MOV_LEFT){
+		left = 1;
+	}else if (receive_packet.direction & 1<<3 && remote_mode_state!=MOV_RIGHT){
+		right = 1;
+	}else if(receive_packet.direction & 1<<2 && remote_mode_state!=MOV_UP){
+		up = 1;
+	}else if (receive_packet.direction & 1 && remote_mode_state!=MOV_DOWN){
+		down = 1;
+	}
+
+	if(left==1 && received_x_pos<220)
+	{
+				   if(remote_mode_state==MOV_UP){
+								lcd_draw_image(
+										received_x_pos,                 // X Pos
+										imageWidthPixels,   // Image Horizontal Width
+										received_y_pos,                 // Y Pos
+										imageHeightPixels,  // Image Vertical Height
+										ver_trail_for_up,       // Image
+										LCD_COLOR_RED,      // Foreground Color
+										LCD_COLOR_BLACK     // Background Color
+									);
+								received_x_pos += 5;
+								received_y_pos += 10;
+					 }
+					 if (remote_mode_state==MOV_DOWN){
+						lcd_draw_image(
+										received_x_pos,                 // X Pos
+										imageWidthPixels,   // Image Horizontal Width
+										received_y_pos,                 // Y Pos
+										imageHeightPixels,  // Image Vertical Height
+										ver_trail_for_down,       // Image
+										LCD_COLOR_RED,      // Foreground Color
+										LCD_COLOR_BLACK     // Background Color
+									);
+							 received_x_pos += 5;
+						}
+
+						remote_mode_state = MOV_LEFT;
+						for (i=remote_packet.x_pos; i<received_x_pos+1; i++)
+						{
+							lcd_draw_image(
+										i,                 // X Pos
+										imageHeightPixels,   // Image Horizontal Width
+										received_y_pos,                 // Y Pos
+										imageWidthPixels,  // Image Vertical Height
+										tron_left,       // Image
+										LCD_COLOR_RED,      // Foreground Color
+										LCD_COLOR_BLACK     // Background Color
+									);
+						}
+						remote_packet.x_pos = received_x_pos;
+	}
+	else if (right==1 && received_x_pos>0)
+	{
+		if(remote_mode_state==MOV_UP)
+		{
+					lcd_draw_image(
+							received_x_pos,                 // X Pos
+							imageWidthPixels,   // Image Horizontal Width
+							received_y_pos,                 // Y Pos
+							imageHeightPixels,  // Image Vertical Height
+							ver_trail_for_up,       // Image
+							LCD_COLOR_RED,      // Foreground Color
+							LCD_COLOR_BLACK     // Background Color
+						);
+					received_x_pos -= 15;
+					received_y_pos += 10;
+		 }
+		if (remote_mode_state==MOV_DOWN)
+		{
+			lcd_draw_image(
+							received_x_pos,                 // X Pos
+							imageWidthPixels,   // Image Horizontal Width
+							received_y_pos,                 // Y Pos
+							imageHeightPixels,  // Image Vertical Height
+							ver_trail_for_down,       // Image
+							LCD_COLOR_RED,      // Foreground Color
+							LCD_COLOR_BLACK     // Background Color
+			);
+			received_x_pos -= 15;
+		}
+		remote_mode_state = MOV_RIGHT;
+		for (i=remote_packet.x_pos; i>received_x_pos-1; i--)
+		{
+			lcd_draw_image(
+						i,                 // X Pos
+						imageHeightPixels,   // Image Horizontal Width
+						received_y_pos,                 // Y Pos
+						imageWidthPixels,  // Image Vertical Height
+						tron_right,       // Image
+						LCD_COLOR_RED,      // Foreground Color
+						LCD_COLOR_BLACK     // Background Color
+					);
+		}
+		remote_packet.x_pos = received_x_pos;
+	}
+	else if (up==1 && received_y_pos<299)
+	{
+		 if(remote_mode_state==MOV_LEFT){
+					lcd_draw_image(
+							received_x_pos,                 // X Pos
+							imageHeightPixels,   // Image Horizontal Width
+							received_y_pos,                 // Y Pos
+							imageWidthPixels,  // Image Vertical Height
+							hor_trail_for_left,       // Image
+							LCD_COLOR_RED,      // Foreground Color
+							LCD_COLOR_BLACK     // Background Color
+						);
+					received_y_pos += 5;
+					received_x_pos += 10;
+		 }
+		 if (remote_mode_state==MOV_RIGHT){
+			lcd_draw_image(
+							received_x_pos,                 // X Pos
+							imageHeightPixels,   // Image Horizontal Width
+							received_y_pos,                 // Y Pos
+							imageWidthPixels,  // Image Vertical Height
+							hor_trail_for_right,       // Image
+							LCD_COLOR_RED,      // Foreground Color
+							LCD_COLOR_BLACK     // Background Color
+						);
+				 received_y_pos += 5;
+			}
+			remote_mode_state = MOV_UP;
+			for (i=remote_packet.y_pos; i<received_y_pos+1; i++)
+			{
+			 lcd_draw_image(
+					 received_x_pos,                 // X Pos
+					 imageWidthPixels,   // Image Horizontal Width
+					 i,                 // Y Pos
+					 imageHeightPixels,  // Image Vertical Height
+					 tron_up,       // Image
+					 LCD_COLOR_RED,      // Foreground Color
+					 LCD_COLOR_BLACK     // Background Color
+				 );
+			}
+			remote_packet.y_pos = received_y_pos;
+		}
+		else if (down==1 && received_y_pos>0)
+		{
+				if (remote_mode_state == MOV_LEFT){
+					lcd_draw_image(
+								received_x_pos,                 // X Pos
+								imageHeightPixels,   // Image Horizontal Width
+								received_y_pos,                 // Y Pos
+								imageWidthPixels,  // Image Vertical Height
+								hor_trail_for_left,       // Image
+								LCD_COLOR_RED,      // Foreground Color
+								LCD_COLOR_BLACK     // Background Color
+							);
+						received_y_pos -= 15;
+						received_x_pos += 10;
+					}
+				if (remote_mode_state==MOV_RIGHT){
+				lcd_draw_image(
+								received_x_pos,                 // X Pos
+								imageHeightPixels,   // Image Horizontal Width
+								received_y_pos,                 // Y Pos
+								imageWidthPixels,  // Image Vertical Height
+								hor_trail_for_right,       // Image
+								LCD_COLOR_RED,      // Foreground Color
+								LCD_COLOR_BLACK     // Background Color
+							);
+					 received_y_pos -= 15;
+				}
+				remote_mode_state = MOV_DOWN;
+				for (i=remote_packet.y_pos; i>received_y_pos-1; i--)
+				{
+				 lcd_draw_image(
+						 received_x_pos,                 // X Pos
+						 imageWidthPixels,   // Image Horizontal Width
+						 i,                 // Y Pos
+						 imageHeightPixels,  // Image Vertical Height
+						 tron_down,       // Image
+						 LCD_COLOR_RED,      // Foreground Color
+						 LCD_COLOR_BLACK     // Background Color
+					 );
+				}
+				remote_packet.y_pos = received_y_pos;
+		}
+}
+
 
 // radio receive interrupt handler
 void GPIOD_Handler(void) {
@@ -350,8 +621,9 @@ void handle_buttons(void) {
 			info.last_game.boosts_type0++;
 			led_status = 0x80;
 			set_leds(led_status);
+			boost = true;
 		}
-		up_pressed = false;
+		up_pressed=false;
 	}
 	if (down_pressed) {
 		printf("\n********\n* down *\n********\n");
@@ -432,6 +704,7 @@ main(void)
 		if (ft6x06_read_td_status() > 0) {
 			if (ft6x06_read_y() < 100 && ft6x06_read_y() > 50 && ft6x06_read_x() < 140 && ft6x06_read_x() > 0) {
 				wireless_status = wireless_send_32(false, false, 0xBEEF);
+				remote_play = true;
 				if (wireless_status == NRF24L01_TX_SUCCESS) {
 					pkts_sent++;
 				} else if (wireless_status == NRF24L01_TX_PCK_LOST) {
@@ -441,7 +714,7 @@ main(void)
 			}
 		}
 	}
-
+	lcd_clear_screen(LCD_COLOR_BLACK);
 	printf("started\n");
 
 	// initialize and set off the watchdog timer for 15 seconds
@@ -613,6 +886,24 @@ main(void)
 									LCD_COLOR_BLUE2,      // Foreground Color
 									LCD_COLOR_BLACK     // Background Color
 								);
+						if(boost)
+						{
+							boost = false;
+							for(i=0; i<10 ;i++)
+							{
+								lcd_draw_image(
+									send_packet.x_pos+i,                 // X Pos
+									imageHeightPixels,   // Image Horizontal Width
+									send_packet.y_pos,                 // Y Pos
+									imageWidthPixels,  // Image Vertical Height
+									tron_right,       // Image
+									LCD_COLOR_BLUE2,      // Foreground Color
+									LCD_COLOR_BLACK     // Background Color
+								);
+							}
+							send_packet.x_pos+=9;
+						}
+						
 					}else{
 						right = 1;
 						left =0;
@@ -690,6 +981,24 @@ main(void)
 									LCD_COLOR_BLUE2,      // Foreground Color
 									LCD_COLOR_BLACK     // Background Color
 								);
+						if(boost)
+						{
+							boost = false;
+							for(i=0; i<10 ;i++)
+							{
+								lcd_draw_image(
+									send_packet.x_pos-i,                 // X Pos
+									imageHeightPixels,   // Image Horizontal Width
+									send_packet.y_pos,                 // Y Pos
+									imageWidthPixels,  // Image Vertical Height
+									tron_left,       // Image
+									LCD_COLOR_BLUE2,      // Foreground Color
+									LCD_COLOR_BLACK     // Background Color
+								);
+							}
+							send_packet.x_pos-=9;						
+						}
+						
 					}else{
 						left = 1 ;
 						right = 0;
@@ -767,6 +1076,23 @@ main(void)
 										LCD_COLOR_BLUE2,      // Foreground Color
 										LCD_COLOR_BLACK     // Background Color
 									);
+						 if(boost)
+						 {
+							boost = false;
+							for(i=0; i<10 ;i++)
+							{
+								lcd_draw_image(
+										send_packet.x_pos,                 // X Pos
+										imageWidthPixels,   // Image Horizontal Width
+										send_packet.y_pos+i,                 // Y Pos
+										imageHeightPixels,  // Image Vertical Height
+										tron_down,       // Image
+										LCD_COLOR_BLUE2,      // Foreground Color
+										LCD_COLOR_BLACK     // Background Color
+									);
+							}
+							send_packet.y_pos+=9;
+						 }
 						}else{
 							down = 1;
 							up= 0;
@@ -843,6 +1169,23 @@ main(void)
 												LCD_COLOR_BLUE2,      // Foreground Color
 												LCD_COLOR_BLACK     // Background Color
 											);
+							 if(boost)
+							 {
+								boost = false;
+								for(i=0; i<10 ;i++)
+								{
+									lcd_draw_image(
+											send_packet.x_pos,                 // X Pos
+											imageWidthPixels,   // Image Horizontal Width
+											send_packet.y_pos-i,                 // Y Pos
+											imageHeightPixels,  // Image Vertical Height
+											tron_up,       // Image
+											LCD_COLOR_BLUE2,      // Foreground Color
+											LCD_COLOR_BLACK     // Background Color
+										);
+								}
+								send_packet.y_pos-=9;
+							 }
 						}else{
 							down = 0;
 							up= 1;
