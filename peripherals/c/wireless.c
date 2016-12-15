@@ -732,6 +732,7 @@ bool wireless_configure_device(
 	gpio_config_falling_edge_irq(GPIOD_BASE, PIN_3);
 	
 	NVIC_EnableIRQ(GPIOD_IRQn);
+	//NVIC_SetPriority(GPIOD_IRQn, 255);
 	
     return true;
   }

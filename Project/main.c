@@ -47,13 +47,7 @@ struct ECE353_info {
 	struct game_info lifetime;
 };
 
-struct ECE353_info info = {
-	"Group25",
-	"Zuodian Hu",
-	"Xiao He",
-	{0,0,0,0,0,0},
-	{0,0,0,0,0,0}
-};
+struct ECE353_info info;
 
 //two modes
 typedef enum
@@ -68,15 +62,24 @@ static MODES mode_state = MOV_UP;
 static MODES player2_mode_state = MOV_DOWN;
 static MODES player2_previous_state = MOV_DOWN;
 
-uint8_t dest_id[] = {0,1,8,9,6};
-uint8_t my_id[] = {3,1,0,9,5};
+uint8_t my_id[] = {49,193,100,189,212};
+uint8_t dest_id[] = {222,64,200,45,139};
 
 volatile uint16_t x_pos;
 volatile uint16_t y_pos;
 volatile bool redraw = false;
+volatile bool transmit = false;
+volatile bool receive = false;
 volatile unsigned int pkts_sent = 0;
 volatile unsigned int pkts_rcvd = 0;
 volatile unsigned int pkts_drpd = 0;
+volatile bool poll_buttons = false;
+volatile bool up_pressed = false;
+volatile bool down_pressed = false;
+volatile bool left_pressed = false;
+volatile bool right_pressed = false;
+volatile int powerup_charge = 0;
+volatile uint8_t led_status = 0x80;
 
 volatile uint32_t self_position;
 volatile uint32_t remote_position;
@@ -98,27 +101,23 @@ void TIMER0A_Handler(void) {
 	adc->ACTSS |= ADC_ACTSS_ASEN2;
 	adc->PSSI |= ADC_PSSI_SS2;
 	
+	poll_buttons = true;
+	
 	timer0->ICR |= TIMER_ICR_TATOCINT;
 }
 
 void TIMER0B_Handler(void) {
-	wireless_com_status_t status;
 	static bool send;
 	
 	// on every interrupt, alternate between two operations
 	if (send) {
-		// transmit current self position
-		status = wireless_send_32(false, false, self_position);
-		if (status == NRF24L01_TX_SUCCESS) {
-			pkts_sent++;
-		} else if (status == NRF24L01_TX_PCK_LOST) {
-			pkts_drpd++;
-		}
-		
+		transmit = true;
 		send = false;
 	} else {
 		// signal the main loop to redraw the frame
 		redraw = true;
+		info.last_game.distance++;
+		powerup_charge++;
 		
 		send = true;
 	}
@@ -136,14 +135,19 @@ void TIMER1A_Handler(void) {
 
 // WatchDog timer handler
 void WDT0_Handler(void) {
-	wdtimer->ICR = 0xFFFFFFFF;
-	
 	NVIC_DisableIRQ(TIMER0A_IRQn);
 	NVIC_DisableIRQ(TIMER0B_IRQn);
 	NVIC_DisableIRQ(TIMER1A_IRQn);
 	NVIC_DisableIRQ(ADC0SS2_IRQn);
+	NVIC_DisableIRQ(GPIOD_IRQn);
 	
-	printf("\nWatchDog Triggered\n");
+	// save game info, then halt the entire machine
+	eeprom_seq_write(EEPROM_I2C_BASE, 0, (uint8_t *)&info, sizeof(info));
+	
+	wdtimer->ICR = 0xFFFFFFFF;
+	
+	init_serial_debug(false, false);
+	printf("\n**********************\n* WatchDog Triggered *\n**********************\n");
 	
 	while(1);
 }
@@ -154,7 +158,7 @@ void GPIOD_Handler(void) {
 	pkts_rcvd++;
 	
 	// store received data
-	wireless_get_32(false, (uint32_t *)&remote_position);
+	receive = true;
 	
 	// feed the dog
 	WATCHDOG0->LOAD = 750000000;
@@ -168,7 +172,7 @@ void GPIOD_Handler(void) {
 void initialize_hardware(void)
 {
 	// initialize serial debugging
-	init_serial_debug(false, false);
+	init_serial_debug(true, true);
 	
 	// push buttons and RGB LED on LaunchPad
 	lp_io_init();
@@ -221,7 +225,7 @@ void initialize_hardware(void)
 	);
 	
 	// initialize and set off the watchdog timer for 15 seconds
-	watchdog_timer_config(WATCHDOG0, 750000000, false, true, false);
+	watchdog_timer_config(WATCHDOG0, 750000000 , false, true, false);
 }
 
 //*****************************************************************************
@@ -235,8 +239,11 @@ void game_over_check(uint16_t lcd_x, uint16_t lcd_y){
 	if ( (lcd_y >= 299 && mode_state==MOV_UP )
 					|| (lcd_y <= 1 && mode_state==MOV_DOWN )
 					|| (lcd_x >= 219 && mode_state==MOV_LEFT )
-					|| (lcd_x <= 1 && mode_state==MOV_RIGHT )				){
-					while(1){}}
+					|| (lcd_x <= 1 && mode_state==MOV_RIGHT ))
+	{
+		eeprom_seq_write(EEPROM_I2C_BASE, 0, (uint8_t *)&info, sizeof(info));
+		while(1);
+	}
 
 
 
@@ -246,6 +253,7 @@ void game_over_check(uint16_t lcd_x, uint16_t lcd_y){
     {
        if(bitmap[lcd_x+i][(int)(lcd_y+19)/32] & (1 << ((lcd_y+19)%32)))
        {
+		 eeprom_seq_write(EEPROM_I2C_BASE, 0, (uint8_t *)&info, sizeof(info));
          while(1){}
        }
     }
@@ -255,6 +263,7 @@ void game_over_check(uint16_t lcd_x, uint16_t lcd_y){
     {
        if(bitmap[lcd_x+i][(int)lcd_y/32] & (1 << (lcd_y%32)))
        {
+		 eeprom_seq_write(EEPROM_I2C_BASE, 0, (uint8_t *)&info, sizeof(info));
          while(1){}
        }
     }
@@ -264,6 +273,7 @@ void game_over_check(uint16_t lcd_x, uint16_t lcd_y){
     {
        if(bitmap[lcd_x+19][(int)(lcd_y+i)/32] & (1 << ((lcd_y+i)%32)))
        {
+		 eeprom_seq_write(EEPROM_I2C_BASE, 0, (uint8_t *)&info, sizeof(info));
          while(1){}
        }
     }
@@ -274,6 +284,7 @@ void game_over_check(uint16_t lcd_x, uint16_t lcd_y){
     {
        if(bitmap[lcd_x][(int)(lcd_y+i)/32] & (1 << ((lcd_y+i)%32)))
        {
+		 eeprom_seq_write(EEPROM_I2C_BASE, 0, (uint8_t *)&info, sizeof(info));
          while(1){}
        }
     }
@@ -281,15 +292,79 @@ void game_over_check(uint16_t lcd_x, uint16_t lcd_y){
 
 }
 
+void handle_buttons(void) {
+	static bool b_up;
+	static bool b_down;
+	static bool b_left;
+	static bool b_right;
+	
+	uint8_t buttons;
+	
+	if (poll_buttons) {
+		buttons = get_buttons();
+		if (buttons & 0x01) {
+			b_up = true;
+		} else {
+			if (b_up) {
+				up_pressed = true;
+			}
+			b_up = false;
+		}
+		if (buttons & 0x02) {
+			b_down = true;
+		} else {
+			if (b_down) {
+				down_pressed = true;
+			}
+			b_down = false;
+		}
+		if (buttons & 0x04) {
+			b_left = true;
+		} else {
+			if (b_left) {
+				left_pressed = true;
+			}
+			b_left = false;
+		}
+		if (buttons & 0x08) {
+			b_right = true;
+		} else {
+			if (b_right) {
+				right_pressed = true;
+			}
+			b_right = false;
+		}
+		
+		poll_buttons = false;
+	}
+	if (up_pressed) {
+		printf("\n********\n** up **\n********\n");
+		led_status = 0x80;
+		up_pressed = false;
+	}
+	if (down_pressed) {
+		printf("\n********\n* down *\n********\n");
+		down_pressed = false;
+	}
+	if (left_pressed) {
+		printf("\n********\n* left *\n********\n");
+		left_pressed = false;
+	}
+	if (right_pressed) {
+		printf("\n********\n* right *\n********\n");
+		right_pressed = false;
+	}
+}
+
 int
 main(void)
 {
+	wireless_com_status_t wireless_status;
 	i2c_status_t status;
 	int i;
 	bool start=true;
 	uint8_t mov;
 	uint16_t prevPix, x_data, y_data, lcd_x = 120, lcd_y = 50, player2_lcd_x = 120,player2_lcd_y = 250 ;
-	uint8_t test[60];
 	
 	uint8_t left = 0,
 				right = 0,
@@ -298,29 +373,78 @@ main(void)
 	
 	initialize_hardware();
 	
-	eeprom_seq_write(EEPROM_I2C_BASE, 0, (uint8_t *)&info, sizeof(info));
-	//for (i=0; i<sizeof(info); i++) {
-	//	eeprom_byte_read(EEPROM_I2C_BASE, i, &((uint8_t *)(&info))[i]);
-	//}
-	//for (i=0; i<60; i++) {
-	//	test[i] = i;
-	//}
-	//eeprom_seq_write(EEPROM_I2C_BASE, 512, test, 32);
-	//for (i=0; i<60; i++) {
-	//	eeprom_byte_read(EEPROM_I2C_BASE, 512+i, &test[i]);
-	//}
+	led_status = 0x80;
 	
-	//eeprom_byte_read(EEPROM_I2C_BASE, 512, test);
+	set_leds(led_status);
+	
 	eeprom_seq_read(EEPROM_I2C_BASE, 0, (uint8_t *)(&info), sizeof(info));
 	
 	printf("\n\nTRON\n");
 	printf("%s\n", info.group);
-	printf("%s\n%s\n\n", info.individual_1, info.individual_2);
+	printf("%s\n%s\n", info.individual_1, info.individual_2);
+	printf("\nLast Game Stats\n");
+	printf("Boost-As used:           %llu\n", info.last_game.boosts_type0);
+	printf("Boost-Bs used:           %llu\n", info.last_game.boosts_type1);
+	printf("Boost-Cs used:           %llu\n", info.last_game.boosts_type2);
+	printf("Boost-Ds used:           %llu\n", info.last_game.boosts_type3);
+	printf("Total Distance Traveled: %llu\n", info.last_game.distance);
+	printf("Number of Turns:         %llu\n\n", info.last_game.turns);
 	
-	set_leds(0xAA);
+	memset(&(info.last_game), 0, sizeof(info.last_game));
 	
 	// Reach infinite loop
 	while(1){
+		handle_buttons();
+		if (powerup_charge > 50) {
+			powerup_charge = 0;
+			switch (led_status) {
+				case 0x80 :
+					led_status = 0x81;
+					break;
+				case 0x81 :
+					led_status = 0x83;
+					break;
+				case 0x83 :
+					led_status = 0x87;
+					break;
+				case 0x87 :
+					led_status = 0x8F;
+					break;
+				case 0x8F :
+					led_status = 0x9F;
+					break;
+				case 0x9F :
+					led_status = 0xBF;
+					break;
+				case 0xBF :
+					led_status = 0xFF;
+					break;
+				case 0xFF :
+					led_status = 0xFF;
+					break;
+				default :
+					led_status = 0xFF;
+					break;
+			}
+			set_leds(led_status);
+		}
+		
+		if (transmit) {
+			// transmit current self position
+			wireless_status = wireless_send_32(false, false, self_position);
+			if (wireless_status == NRF24L01_TX_SUCCESS) {
+				pkts_sent++;
+			} else if (wireless_status == NRF24L01_TX_PCK_LOST) {
+				pkts_drpd++;
+			}
+			
+			transmit = false;
+		}
+		if (receive) {
+			wireless_get_32(false, (uint32_t *)&remote_position);
+			receive = false;
+		}
+		
 		// update screen
 		if (redraw) {
 			
@@ -334,230 +458,228 @@ main(void)
 			}
 			
 			if (mov&0x20 && lcd_x<220){
-					left = 1;
-					right = 0;
-					up = 0;
-					down = 0;
-				}else if (mov&0x8 && lcd_x>0){
-					left = 0;
-					right = 1;
-					up = 0;
-					down = 0;
-				}
-				else if (mov&0x4 && lcd_y<300){
-					left = 0;
-					right = 0;
-					up = 1;
-					down = 0;
-				}else if (mov&0x1 && lcd_y>0){
-					left = 0;
-					right = 0;
-					up = 0;
-					down = 1;
-				}
+				left = 1;
+				right = 0;
+				up = 0;
+				down = 0;
+			}else if (mov&0x8 && lcd_x>0){
+				left = 0;
+				right = 1;
+				up = 0;
+				down = 0;
+			}
+			else if (mov&0x4 && lcd_y<300){
+				left = 0;
+				right = 0;
+				up = 1;
+				down = 0;
+			}else if (mov&0x1 && lcd_y>0){
+				left = 0;
+				right = 0;
+				up = 0;
+				down = 1;
+			}
 
-			 game_over_check(lcd_x, lcd_y);
-			 if(left==1)
-				 {
-				   if(mode_state==MOV_UP){
-								lcd_draw_image(
-										lcd_x,                 // X Pos
-										imageWidthPixels,   // Image Horizontal Width
-										lcd_y,                 // Y Pos
-										imageHeightPixels,  // Image Vertical Height
-										ver_trail_for_up,       // Image
-										LCD_COLOR_BLUE2,      // Foreground Color
-										LCD_COLOR_BLACK     // Background Color
-									);
+			game_over_check(lcd_x, lcd_y);
+			if(left==1)
+			{
+				if(mode_state==MOV_UP){
+					lcd_draw_image(
+						lcd_x,                 // X Pos
+						imageWidthPixels,   // Image Horizontal Width
+						lcd_y,                 // Y Pos
+						imageHeightPixels,  // Image Vertical Height
+						ver_trail_for_up,       // Image
+						LCD_COLOR_BLUE2,      // Foreground Color
+						LCD_COLOR_BLACK     // Background Color
+					);
 
-								for(i=0; i<16; i++)
-								{
-									bitmap[lcd_x+4][(int)(lcd_y+i)/32] |= 1 << ((lcd_y+i)%32);
-									bitmap[lcd_x+5][(int)(lcd_y+i)/32] |= 1 << ((lcd_y+i)%32);
-								}
-
-								lcd_x += 5;
-								lcd_y += 10;
-					 }
-					 if (mode_state==MOV_DOWN){
-						lcd_draw_image(
-										lcd_x,                 // X Pos
-										imageWidthPixels,   // Image Horizontal Width
-										lcd_y,                 // Y Pos
-										imageHeightPixels,  // Image Vertical Height
-										ver_trail_for_down,       // Image
-										LCD_COLOR_BLUE2,      // Foreground Color
-										LCD_COLOR_BLACK     // Background Color
-									);
-						   	for(i=4; i<20; i++)
-								{
-									bitmap[lcd_x+4][(int)(lcd_y+i)/32] |= 1 << ((lcd_y+i)%32);
-									bitmap[lcd_x+5][(int)(lcd_y+i)/32] |= 1 << ((lcd_y+i)%32);
-								}
-
-							 lcd_x += 5;
-						}
-					//x_max=0;
-          if (lcd_x>220)
-          {
-            lcd_x=220;
-          }
-
-					if (mode_state != MOV_RIGHT){
-						mode_state = MOV_LEFT;
-						player2_mode_state = MOV_RIGHT;
-						//store info
-						bitmap[lcd_x][(int)(lcd_y+4)/32] |= 1 << ((lcd_y+4)%32);
-						bitmap[lcd_x][(int)(lcd_y+5)/32] |= 1 << ((lcd_y+5)%32);
-
-						lcd_x++;
-						lcd_draw_image(
-									lcd_x,                 // X Pos
-									imageHeightPixels,   // Image Horizontal Width
-									lcd_y,                 // Y Pos
-									imageWidthPixels,  // Image Vertical Height
-									tron_left,       // Image
-									LCD_COLOR_BLUE2,      // Foreground Color
-									LCD_COLOR_BLACK     // Background Color
-								);
-					}else{
-						right = 1;
-						left =0;
-						lcd_x--;
-						lcd_draw_image(
-									lcd_x,                 // X Pos
-									imageHeightPixels,   // Image Horizontal Width
-									lcd_y,                 // Y Pos
-									imageWidthPixels,  // Image Vertical Height
-									tron_right,       // Image
-									LCD_COLOR_BLUE2,      // Foreground Color
-									LCD_COLOR_BLACK     // Background Color
-								);
+					for(i=0; i<16; i++)
+					{
+						bitmap[lcd_x+4][(int)(lcd_y+i)/32] |= 1 << ((lcd_y+i)%32);
+						bitmap[lcd_x+5][(int)(lcd_y+i)/32] |= 1 << ((lcd_y+i)%32);
 					}
 
-			 }
-			 else if (right==1)
-			 {
-				  if(mode_state==MOV_UP){
-								lcd_draw_image(
-										lcd_x,                 // X Pos
-										imageWidthPixels,   // Image Horizontal Width
-										lcd_y,                 // Y Pos
-										imageHeightPixels,  // Image Vertical Height
-										ver_trail_for_up,       // Image
-										LCD_COLOR_BLUE2,      // Foreground Color
-										LCD_COLOR_BLACK     // Background Color
-									);
+					lcd_x += 5;
+					lcd_y += 10;
+				}
+				if (mode_state==MOV_DOWN){
+					lcd_draw_image(
+						lcd_x,                 // X Pos
+						imageWidthPixels,   // Image Horizontal Width
+						lcd_y,                 // Y Pos
+						imageHeightPixels,  // Image Vertical Height
+						ver_trail_for_down,       // Image
+						LCD_COLOR_BLUE2,      // Foreground Color
+						LCD_COLOR_BLACK     // Background Color
+					);
+					for(i=4; i<20; i++)
+					{
+						bitmap[lcd_x+4][(int)(lcd_y+i)/32] |= 1 << ((lcd_y+i)%32);
+						bitmap[lcd_x+5][(int)(lcd_y+i)/32] |= 1 << ((lcd_y+i)%32);
+					}
 
-								for(i=0; i<16; i++)
-								{
-									bitmap[lcd_x+4][(int)(lcd_y+i)/32] |= 1 << ((lcd_y+i)%32);
-									bitmap[lcd_x+5][(int)(lcd_y+i)/32] |= 1 << ((lcd_y+i)%32);
-								}
+					lcd_x += 5;
+				}
+				//x_max=0;
+				if (lcd_x>220)
+				{
+					lcd_x=220;
+				}
 
-								lcd_x -= 15;
-								lcd_y += 10;
-					 }
-					 if (mode_state==MOV_DOWN){
-						lcd_draw_image(
-										lcd_x,                 // X Pos
-										imageWidthPixels,   // Image Horizontal Width
-										lcd_y,                 // Y Pos
-										imageHeightPixels,  // Image Vertical Height
-										ver_trail_for_down,       // Image
-										LCD_COLOR_BLUE2,      // Foreground Color
-										LCD_COLOR_BLACK     // Background Color
-									);
-								for(i=4; i<20; i++)
-								{
-									bitmap[lcd_x+4][(int)(lcd_y+i)/32] |= 1 << ((lcd_y+i)%32);
-									bitmap[lcd_x+5][(int)(lcd_y+i)/32] |= 1 << ((lcd_y+i)%32);
-								}
+				if (mode_state != MOV_RIGHT){
+					mode_state = MOV_LEFT;
+					player2_mode_state = MOV_RIGHT;
+					//store info
+					bitmap[lcd_x][(int)(lcd_y+4)/32] |= 1 << ((lcd_y+4)%32);
+					bitmap[lcd_x][(int)(lcd_y+5)/32] |= 1 << ((lcd_y+5)%32);
 
-							 lcd_x -= 15;
-						}
+					lcd_x++;
+					lcd_draw_image(
+						lcd_x,                 // X Pos
+						imageHeightPixels,   // Image Horizontal Width
+						lcd_y,                 // Y Pos
+						imageWidthPixels,  // Image Vertical Height
+						tron_left,       // Image
+						LCD_COLOR_BLUE2,      // Foreground Color
+						LCD_COLOR_BLACK     // Background Color
+					);
+				} else {
+					right = 1;
+					left =0;
+					lcd_x--;
+					lcd_draw_image(
+						lcd_x,                 // X Pos
+						imageHeightPixels,   // Image Horizontal Width
+						lcd_y,                 // Y Pos
+						imageWidthPixels,  // Image Vertical Height
+						tron_right,       // Image
+						LCD_COLOR_BLUE2,      // Foreground Color
+						LCD_COLOR_BLACK     // Background Color
+					);
+				}
+			}
+			else if (right==1)
+			{
+				if(mode_state==MOV_UP){
+					lcd_draw_image(
+						lcd_x,                 // X Pos
+						imageWidthPixels,   // Image Horizontal Width
+						lcd_y,                 // Y Pos
+						imageHeightPixels,  // Image Vertical Height
+						ver_trail_for_up,       // Image
+						LCD_COLOR_BLUE2,      // Foreground Color
+						LCD_COLOR_BLACK     // Background Color
+					);
+
+					for(i=0; i<16; i++)
+					{
+						bitmap[lcd_x+4][(int)(lcd_y+i)/32] |= 1 << ((lcd_y+i)%32);
+						bitmap[lcd_x+5][(int)(lcd_y+i)/32] |= 1 << ((lcd_y+i)%32);
+					}
+
+					lcd_x -= 15;
+					lcd_y += 10;
+				}
+				if (mode_state==MOV_DOWN){
+					lcd_draw_image(
+						lcd_x,                 // X Pos
+						imageWidthPixels,   // Image Horizontal Width
+						lcd_y,                 // Y Pos
+						imageHeightPixels,  // Image Vertical Height
+						ver_trail_for_down,       // Image
+						LCD_COLOR_BLUE2,      // Foreground Color
+						LCD_COLOR_BLACK     // Background Color
+					);
+					for(i=4; i<20; i++)
+					{
+						bitmap[lcd_x+4][(int)(lcd_y+i)/32] |= 1 << ((lcd_y+i)%32);
+						bitmap[lcd_x+5][(int)(lcd_y+i)/32] |= 1 << ((lcd_y+i)%32);
+					}
+
+					lcd_x -= 15;
+				}
             if (lcd_x>=240)
             {
-              lcd_x=1;
+				lcd_x=1;
             }
 
-					if (mode_state != MOV_LEFT){
-					 mode_state = MOV_RIGHT;
-					 player2_mode_state = MOV_LEFT;
+			if (mode_state != MOV_LEFT){
+				mode_state = MOV_RIGHT;
+				player2_mode_state = MOV_LEFT;
 
-					 bitmap[lcd_x+9][(int)(lcd_y+4)/32] |= 1 << ((lcd_y+4)%32);
-					 bitmap[lcd_x+9][(int)(lcd_y+5)/32] |= 1 << ((lcd_y+5)%32);
+				bitmap[lcd_x+9][(int)(lcd_y+4)/32] |= 1 << ((lcd_y+4)%32);
+				bitmap[lcd_x+9][(int)(lcd_y+5)/32] |= 1 << ((lcd_y+5)%32);
 
-					 lcd_x--;
-					 lcd_draw_image(
-									lcd_x,                 // X Pos
-									imageHeightPixels,   // Image Horizontal Width
-									lcd_y,                 // Y Pos
-									imageWidthPixels,  // Image Vertical Height
-									tron_right,       // Image
-									LCD_COLOR_BLUE2,      // Foreground Color
-									LCD_COLOR_BLACK     // Background Color
-								);
-					}else{
-						left = 1 ;
-						right = 0;
-						lcd_x++;
-						lcd_draw_image(
-									lcd_x,                 // X Pos
-									imageHeightPixels,   // Image Horizontal Width
-									lcd_y,                 // Y Pos
-									imageWidthPixels,  // Image Vertical Height
-									tron_left,       // Image
-									LCD_COLOR_BLUE2,      // Foreground Color
-									LCD_COLOR_BLACK     // Background Color
-								);
-					}
+				lcd_x--;
+				lcd_draw_image(
+					lcd_x,                 // X Pos
+					imageHeightPixels,   // Image Horizontal Width
+					lcd_y,                 // Y Pos
+					imageWidthPixels,  // Image Vertical Height
+					tron_right,       // Image
+					LCD_COLOR_BLUE2,      // Foreground Color
+					LCD_COLOR_BLACK     // Background Color
+				);
+			}else{
+				left = 1 ;
+				right = 0;
+				lcd_x++;
+				lcd_draw_image(
+					lcd_x,                 // X Pos
+					imageHeightPixels,   // Image Horizontal Width
+					lcd_y,                 // Y Pos
+					imageWidthPixels,  // Image Vertical Height
+					tron_left,       // Image
+					LCD_COLOR_BLUE2,      // Foreground Color
+					LCD_COLOR_BLACK     // Background Color
+				);
+			}
+		}
+		else if (up==1)
+		{
+		if(mode_state==MOV_LEFT){
+			lcd_draw_image(
+				lcd_x,                 // X Pos
+				imageHeightPixels,   // Image Horizontal Width
+				lcd_y,                 // Y Pos
+				imageWidthPixels,  // Image Vertical Height
+				hor_trail_for_left,       // Image
+				LCD_COLOR_BLUE2,      // Foreground Color
+				LCD_COLOR_BLACK     // Background Color
+			);
 
-			 }
-			 else if (up==1)
-			 {
-					 if(mode_state==MOV_LEFT){
-								lcd_draw_image(
-										lcd_x,                 // X Pos
-										imageHeightPixels,   // Image Horizontal Width
-										lcd_y,                 // Y Pos
-										imageWidthPixels,  // Image Vertical Height
-										hor_trail_for_left,       // Image
-										LCD_COLOR_BLUE2,      // Foreground Color
-										LCD_COLOR_BLACK     // Background Color
-									);
+			for(i=0; i<16; i++)
+			{
+				bitmap[lcd_x+i][(int)(lcd_y+4)/32] |= 1 << ((lcd_y+4)%32);
+				bitmap[lcd_x+i][(int)(lcd_y+5)/32] |= 1 << ((lcd_y+5)%32);
+			}
 
-								for(i=0; i<16; i++)
-								{
-									bitmap[lcd_x+i][(int)(lcd_y+4)/32] |= 1 << ((lcd_y+4)%32);
-									bitmap[lcd_x+i][(int)(lcd_y+5)/32] |= 1 << ((lcd_y+5)%32);
-								}
+			lcd_y += 5;
+			lcd_x += 10;
+		}
+		if (mode_state==MOV_RIGHT){
+			lcd_draw_image(
+				lcd_x,                 // X Pos
+				imageHeightPixels,   // Image Horizontal Width
+				lcd_y,                 // Y Pos
+				imageWidthPixels,  // Image Vertical Height
+				hor_trail_for_right,       // Image
+				LCD_COLOR_BLUE2,      // Foreground Color
+				LCD_COLOR_BLACK     // Background Color
+			);
+			for(i=4; i<20; i++)
+			{
+				bitmap[lcd_x+i][(int)(lcd_y+4)/32] |= 1 << ((lcd_y+4)%32);
+				bitmap[lcd_x+i][(int)(lcd_y+5)/32] |= 1 << ((lcd_y+5)%32);
+			}
 
-								lcd_y += 5;
-								lcd_x += 10;
-					 }
-					 if (mode_state==MOV_RIGHT){
-						lcd_draw_image(
-										lcd_x,                 // X Pos
-										imageHeightPixels,   // Image Horizontal Width
-										lcd_y,                 // Y Pos
-										imageWidthPixels,  // Image Vertical Height
-										hor_trail_for_right,       // Image
-										LCD_COLOR_BLUE2,      // Foreground Color
-										LCD_COLOR_BLACK     // Background Color
-									);
-								for(i=4; i<20; i++)
-								{
-									bitmap[lcd_x+i][(int)(lcd_y+4)/32] |= 1 << ((lcd_y+4)%32);
-									bitmap[lcd_x+i][(int)(lcd_y+5)/32] |= 1 << ((lcd_y+5)%32);
-								}
-
-							 lcd_y += 5;
-						}
-            if (lcd_y>300)
-            {
-              lcd_x=300;
-            }
+			lcd_y += 5;
+		}
+		if (lcd_y>300)
+		{
+			lcd_x=300;
+		}
 
 
 					 if (mode_state != MOV_DOWN){
