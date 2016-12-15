@@ -76,6 +76,7 @@ volatile uint16_t y_pos;
 volatile bool redraw = false;
 volatile bool transmit = false;
 volatile bool receive = false;
+volatile bool handle_player2 = false;
 volatile unsigned int pkts_sent = 0;
 volatile unsigned int pkts_rcvd = 0;
 volatile unsigned int pkts_drpd = 0;
@@ -406,16 +407,13 @@ void GPIOD_Handler(void) {
 	// increment received packets count
 	pkts_rcvd++;
 
-	// store received data
-	wireless_get_32(false, (uint32_t *)&receive_packet);
-
 	receive = true;
 
 	// feed the dog
 	WATCHDOG0->LOAD = 750000000;
-
-	//player2Tron
-	player2Tron();
+	
+	// trigger player 2 handling
+	handle_player2 = true;
 
 	// clear interrupt
 	GPIOD->ICR = PIN_3;
@@ -426,7 +424,6 @@ void GPIOD_Handler(void) {
 void initialize_hardware(void)
 {
 	// initialize serial debugging
-
 	init_serial_debug(true, true);
 
 	// push buttons and RGB LED on LaunchPad
@@ -593,7 +590,11 @@ void handle_buttons(void) {
 	}
 	if (up_pressed) {
 		printf("\n********\n** up **\n********\n");
-		led_status = 0x80;
+		if (led_status == 0xFF) {
+			info.last_game.boosts_type0++;
+			led_status = 0x80;
+			set_leds(led_status);
+		}
 		up_pressed = false;
 	}
 	if (down_pressed) {
@@ -622,8 +623,6 @@ main(void)
 	uint8_t up = 0, down = 0, left = 0, right = 0;
 
 	initialize_hardware();
-
-	eeprom_seq_write(EEPROM_I2C_BASE, 0, (uint8_t *)&info, sizeof(info));
 
 	led_status = 0x80;
 
@@ -696,7 +695,12 @@ main(void)
 			wireless_get_32(false, (uint32_t *)&remote_position);
 			receive = false;
 		}
-
+		
+		if (handle_player2) {
+			//player2Tron
+			player2Tron();
+		}
+		
 		// update screen
 		if (redraw) {
 
