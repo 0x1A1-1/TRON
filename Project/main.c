@@ -123,7 +123,6 @@ void TIMER0B_Handler(void) {
 
 	// on every interrupt, alternate between two operations
 	if (send) {
-		//wireless_status = wireless_send_32(false, false, *(uint32_t *)(&send_packet));
 		transmit = true;
 		send = false;
 	} else {
