@@ -546,6 +546,16 @@ main(void)
 		LCD_COLOR_BLUE2,       // Foreground Color
 		LCD_COLOR_BLACK        // Background Color
 	);
+	
+	lcd_draw_image(
+		0,                 // X Pos
+		tr2n_logoWidthPixels,   // Image Horizontal Width
+		130,                 // Y Pos
+		circuitHeightPixels,  // Image Vertical Height
+		circuit,       // Image
+		LCD_COLOR_BLUE2,      // Foreground Color
+		LCD_COLOR_BLACK     // Background Color
+	);
 
 	lcd_draw_image(
 		0,                 // X Pos
