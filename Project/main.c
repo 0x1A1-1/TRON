@@ -114,7 +114,6 @@ void TIMER0A_Handler(void) {
 
 	poll_buttons = true;
 
-
 	timer0->ICR |= TIMER_ICR_TATOCINT;
 }
 
@@ -188,7 +187,7 @@ void player2Tron(){
 					// go to smallest x-value
 					while (curr_x > new_packet.x_pos) {
 						// draw the image, then move the image
-						tron_draw_down(curr_x, curr_y, true);
+						tron_draw_right(curr_x, curr_y, true);
 						tron_update_bitmap_lr(curr_x, curr_y, (uint32_t (*)[10])bitmap);
 						curr_x--;
 					}
@@ -197,7 +196,7 @@ void player2Tron(){
 					// go to largest x-value
 					while (curr_x < new_packet.x_pos) {
 						// draw the image, then move the image
-						tron_draw_down(curr_x, curr_y, true);
+						tron_draw_left(curr_x, curr_y, true);
 						tron_update_bitmap_lr(curr_x, curr_y, (uint32_t (*)[10])bitmap);
 						curr_x++;
 					}
@@ -210,7 +209,7 @@ void player2Tron(){
 			// go to largest y-value
 			while (curr_y > new_packet.y_pos) {
 				// draw the image, then move the image
-				tron_draw_down(curr_x, curr_y, true);
+				tron_draw_up(curr_x, curr_y, true);
 				tron_update_bitmap_ud(curr_x, curr_y, (uint32_t (*)[10])bitmap);
 				curr_y++;
 			}
@@ -219,7 +218,7 @@ void player2Tron(){
 					// go to smallest x-value
 					while (curr_x > new_packet.x_pos) {
 						// draw the image, then move the image
-						tron_draw_down(curr_x, curr_y, true);
+						tron_draw_right(curr_x, curr_y, true);
 						tron_update_bitmap_lr(curr_x, curr_y, (uint32_t (*)[10])bitmap);
 						curr_x--;
 					}
@@ -228,7 +227,7 @@ void player2Tron(){
 					// go to largest x-value
 					while (curr_x < new_packet.x_pos) {
 						// draw the image, then move the image
-						tron_draw_down(curr_x, curr_y, true);
+						tron_draw_left(curr_x, curr_y, true);
 						tron_update_bitmap_lr(curr_x, curr_y, (uint32_t (*)[10])bitmap);
 						curr_x++;
 					}
@@ -241,7 +240,7 @@ void player2Tron(){
 			// go to smallest x-value
 			while (curr_x > new_packet.x_pos) {
 				// draw the image, then move the image
-				tron_draw_down(curr_x, curr_y, true);
+				tron_draw_right(curr_x, curr_y, true);
 				tron_update_bitmap_lr(curr_x, curr_y, (uint32_t (*)[10])bitmap);
 				curr_x--;
 			}
@@ -259,7 +258,7 @@ void player2Tron(){
 					// go to largest y-value
 					while (curr_y < new_packet.y_pos) {
 						// draw the image, then move the image
-						tron_draw_down(curr_x, curr_y, true);
+						tron_draw_up(curr_x, curr_y, true);
 						tron_update_bitmap_ud(curr_x, curr_y, (uint32_t (*)[10])bitmap);
 						curr_y++;
 					}
@@ -272,7 +271,7 @@ void player2Tron(){
 			// go to largest x-value
 			while (curr_x < new_packet.x_pos) {
 				// draw the image, then move the image
-				tron_draw_down(curr_x, curr_y, true);
+				tron_draw_left(curr_x, curr_y, true);
 				tron_update_bitmap_lr(curr_x, curr_y, (uint32_t (*)[10])bitmap);
 				curr_x++;
 			}
@@ -290,7 +289,7 @@ void player2Tron(){
 					// go to largest y-value
 					while (curr_y < new_packet.y_pos) {
 						// draw the image, then move the image
-						tron_draw_down(curr_x, curr_y, true);
+						tron_draw_up(curr_x, curr_y, true);
 						tron_update_bitmap_ud(curr_x, curr_y, (uint32_t (*)[10])bitmap);
 						curr_y++;
 					}
@@ -300,7 +299,7 @@ void player2Tron(){
 			}
 			break;
 		default :
-			printf("went to default with value %x\n", old_packet.direction);
+			printf("went to default with direction value %x\n", old_packet.direction);
 			break;
 	}
 }
@@ -369,7 +368,7 @@ void initialize_hardware(void)
 	timer1->CTL |= TIMER_CTL_TAEN;
 	gp_timer_start_16(
 		timer0,
-		2,
+		1,
 		20,
 		50000,
 		50000
@@ -593,19 +592,31 @@ main(void)
 	watchdog_timer_config(WATCHDOG0, 750000000 , false, true, false);
 	
 	// filter out start packets
-	while(1) {
-		wireless_status = wireless_get_32(true, (uint32_t *)(&new_packet));
-		switch (new_packet.direction & 0xF) {
-			case 0x1 :
-			case 0x2 :
-			case 0x4 :
-			case 0x8 :
-				goto RUN;
-			default :
+	/*while(1) {
+		if (receive) {
+			wireless_status = wireless_get_32(false, (uint32_t *)(&new_packet));
+			switch (new_packet.direction & 0xF) {
+				case 0x1 :
+				case 0x2 :
+				case 0x4 :
+				case 0x8 :
+					goto RUN;
+				default :
+					wireless_status = wireless_send_32(false, false, 0xBEEF);
+					if (wireless_status == NRF24L01_TX_SUCCESS) {
+						pkts_sent++;
+					} else if (wireless_status == NRF24L01_TX_PCK_LOST) {
+						pkts_drpd++;
+					}
+					break;
+			}
+			receive = false;
 		}
-	}
+	}*/
 	
-	RUN:
+	printf("\n*********************\n");
+	printf("** start main loop **\n");
+	printf("*********************\n");
 	// Reach infinite loop
 	while(1){
 		handle_buttons();
@@ -657,32 +668,34 @@ main(void)
 		}
 		if (receive) {
 			wireless_get_32(false, (uint32_t *)&new_packet);
-			new_packet.x_pos = 240 - new_packet.x_pos;
-			new_packet.y_pos = 320 - new_packet.y_pos;
-			switch (new_packet.direction & 0xF) {
-				case 0x1 :
-					new_packet.direction = 0x2;
-					break;
-				case 0x2 :
-					new_packet.direction = 0x1;
-					break;
-				case 0x4 :
-					new_packet.direction = 0x8;
-					break;
-				case 0x8 :
-					new_packet.direction = 0x4;
-					break;
-				default :
-					break;
+			if (new_packet.direction != 0xEF) {
+				new_packet.x_pos = 240 - new_packet.x_pos;
+				new_packet.y_pos = 320 - new_packet.y_pos;
+				switch (new_packet.direction & 0xF) {
+					case 0x1 :
+						new_packet.direction = 0x2;
+						break;
+					case 0x2 :
+						new_packet.direction = 0x1;
+						break;
+					case 0x4 :
+						new_packet.direction = 0x8;
+						break;
+					case 0x8 :
+						new_packet.direction = 0x4;
+						break;
+					default :
+						break;
+				}
+				printf("\nx position: %d\ny position: %d\ndirection: %x\n", new_packet.x_pos, new_packet.y_pos, new_packet.direction);
+				// feed the dog
+				WATCHDOG0->LOAD = 750000000;
+				receive = false;
+				
+				player2Tron();
+				
+				memcpy(&old_packet, &new_packet, sizeof(struct data_packet));
 			}
-			printf("\nx position: %d\ny position: %d\ndirection: %x\n", new_packet.x_pos, new_packet.y_pos, new_packet.direction);
-			// feed the dog
-			WATCHDOG0->LOAD = 750000000;
-			receive = false;
-			
-			player2Tron();
-			
-			memcpy(&old_packet, &new_packet, sizeof(struct data_packet));
 		}
 
 		// update screen
