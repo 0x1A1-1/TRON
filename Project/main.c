@@ -383,15 +383,57 @@ void initialize_hardware(void)
 	);
 }
 
+void display_ending(bool win){
+	uint16_t i;
+	for(i=0; i<125; i++)
+	{
+		lcd_draw_image(
+			i,                 // X Pos
+			endingWidth,   // Image Horizontal Width
+			130,                 // Y Pos
+			endingHeight,  // Image Vertical Height
+			ending_animation,       // Image
+			LCD_COLOR_BLUE2,      // Foreground Color
+			LCD_COLOR_BLACK     // Background Color
+		);
+	}
+	lcd_clear_screen(LCD_COLOR_BLACK);
+	if(win)
+	{
+		lcd_draw_image(
+			0,                 // X Pos
+			endMsgWidth,   // Image Horizontal Width
+			130,                 // Y Pos
+			endMsgHeight,  // Image Vertical Height
+			winning,       // Image
+			LCD_COLOR_RED,      // Foreground Color
+			LCD_COLOR_BLACK     // Background Color
+		);
+	}else{
+		lcd_draw_image(
+			0,                 // X Pos
+			endMsgWidth,   // Image Horizontal Width
+			130,                 // Y Pos
+			endMsgHeight,  // Image Vertical Height
+			lost,       // Image
+			LCD_COLOR_BLACK,      // Foreground Color
+			LCD_COLOR_BLUE2     // Background Color
+		);
+	}
+	
+}
+
 void spin(bool win) {
 	eeprom_seq_write(EEPROM_I2C_BASE, 0, (uint8_t *)&info, sizeof(info));
 	if (win) {
+		display_ending(true);
 		// play victory animation
 		while (1) {
 			wireless_send_32(true, true, 0xFFFF);
 		}
 	} else {
 		wireless_send_32(true, true, 0x0000);
+		display_ending(false);
 		// play defeat animation
 		while (1) {
 			wireless_send_32(true, true, 0x0000);
