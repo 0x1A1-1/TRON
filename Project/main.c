@@ -169,34 +169,36 @@ void WDT0_Handler(void) {
 void player2Tron(){
 	unsigned int curr_x;
 	unsigned int curr_y;
-	
+
 	curr_x = old_packet.x_pos;
 	curr_y = old_packet.y_pos;
-	
+
 	switch (old_packet.direction & 0xF) {
 		case 0x1 :
 			// go to smallest y-value
 			while (curr_y > new_packet.y_pos) {
 				// draw the image, then move the image
-				tron_draw_down(curr_x, curr_y, true);
+				tron_draw_down(curr_x, curr_y, true, false);
 				tron_update_bitmap_ud(curr_x, curr_y, (uint32_t (*)[10])bitmap);
 				curr_y--;
 			}
 			switch (new_packet.direction & 0xF) {
 				case 0x4 :
 					// go to smallest x-value
+					tron_draw_down(curr_x, curr_y, true, true);
 					while (curr_x > new_packet.x_pos) {
 						// draw the image, then move the image
-						tron_draw_right(curr_x, curr_y, true);
+						tron_draw_right(curr_x, curr_y, true, false);
 						tron_update_bitmap_lr(curr_x, curr_y, (uint32_t (*)[10])bitmap);
 						curr_x--;
 					}
 					break;
 				case 0x8 :
 					// go to largest x-value
+					tron_draw_down(curr_x, curr_y, true, true);
 					while (curr_x < new_packet.x_pos) {
 						// draw the image, then move the image
-						tron_draw_left(curr_x, curr_y, true);
+						tron_draw_left(curr_x, curr_y, true, false);
 						tron_update_bitmap_lr(curr_x, curr_y, (uint32_t (*)[10])bitmap);
 						curr_x++;
 					}
@@ -209,25 +211,27 @@ void player2Tron(){
 			// go to largest y-value
 			while (curr_y > new_packet.y_pos) {
 				// draw the image, then move the image
-				tron_draw_up(curr_x, curr_y, true);
+				tron_draw_up(curr_x, curr_y, true, false);
 				tron_update_bitmap_ud(curr_x, curr_y, (uint32_t (*)[10])bitmap);
 				curr_y++;
 			}
 			switch (new_packet.direction & 0xF) {
 				case 0x4 :
 					// go to smallest x-value
+					tron_draw_up(curr_x, curr_y, true, true);
 					while (curr_x > new_packet.x_pos) {
 						// draw the image, then move the image
-						tron_draw_right(curr_x, curr_y, true);
+						tron_draw_right(curr_x, curr_y, true, false);
 						tron_update_bitmap_lr(curr_x, curr_y, (uint32_t (*)[10])bitmap);
 						curr_x--;
 					}
 					break;
 				case 0x8 :
 					// go to largest x-value
+					tron_draw_up(curr_x, curr_y, true, true);
 					while (curr_x < new_packet.x_pos) {
 						// draw the image, then move the image
-						tron_draw_left(curr_x, curr_y, true);
+						tron_draw_left(curr_x, curr_y, true, false);
 						tron_update_bitmap_lr(curr_x, curr_y, (uint32_t (*)[10])bitmap);
 						curr_x++;
 					}
@@ -240,25 +244,27 @@ void player2Tron(){
 			// go to smallest x-value
 			while (curr_x > new_packet.x_pos) {
 				// draw the image, then move the image
-				tron_draw_right(curr_x, curr_y, true);
+				tron_draw_right(curr_x, curr_y, true, false);
 				tron_update_bitmap_lr(curr_x, curr_y, (uint32_t (*)[10])bitmap);
 				curr_x--;
 			}
 			switch (new_packet.direction & 0xF) {
 				case 0x1 :
 					// go to smallest y-value
+					tron_draw_right(curr_x, curr_y, true, true);
 					while (curr_y > new_packet.y_pos) {
 						// draw the image, then move the image
-						tron_draw_down(curr_x, curr_y, true);
+						tron_draw_down(curr_x, curr_y, true, false);
 						tron_update_bitmap_ud(curr_x, curr_y, (uint32_t (*)[10])bitmap);
 						curr_y--;
 					}
 					break;
 				case 0x2 :
 					// go to largest y-value
+					tron_draw_right(curr_x, curr_y, true, true);
 					while (curr_y < new_packet.y_pos) {
 						// draw the image, then move the image
-						tron_draw_up(curr_x, curr_y, true);
+						tron_draw_up(curr_x, curr_y, true, false);
 						tron_update_bitmap_ud(curr_x, curr_y, (uint32_t (*)[10])bitmap);
 						curr_y++;
 					}
@@ -271,25 +277,27 @@ void player2Tron(){
 			// go to largest x-value
 			while (curr_x < new_packet.x_pos) {
 				// draw the image, then move the image
-				tron_draw_left(curr_x, curr_y, true);
+				tron_draw_left(curr_x, curr_y, true, false);
 				tron_update_bitmap_lr(curr_x, curr_y, (uint32_t (*)[10])bitmap);
 				curr_x++;
 			}
 			switch (new_packet.direction & 0xF) {
 				case 0x1 :
 					// go to smallest y-value
+					tron_draw_left(curr_x, curr_y, true, true);
 					while (curr_y > new_packet.y_pos) {
 						// draw the image, then move the image
-						tron_draw_down(curr_x, curr_y, true);
+						tron_draw_down(curr_x, curr_y, true, false);
 						tron_update_bitmap_ud(curr_x, curr_y, (uint32_t (*)[10])bitmap);
 						curr_y--;
 					}
 					break;
 				case 0x2 :
 					// go to largest y-value
+					tron_draw_left(curr_x, curr_y, true, true);
 					while (curr_y < new_packet.y_pos) {
 						// draw the image, then move the image
-						tron_draw_up(curr_x, curr_y, true);
+						tron_draw_up(curr_x, curr_y, true, false);
 						tron_update_bitmap_ud(curr_x, curr_y, (uint32_t (*)[10])bitmap);
 						curr_y++;
 					}
@@ -369,13 +377,27 @@ void initialize_hardware(void)
 	gp_timer_start_16(
 		timer0,
 		1,
-		20,
+		50,
 		50000,
 		50000
 	);
 }
 
-
+void spin(bool win) {
+	eeprom_seq_write(EEPROM_I2C_BASE, 0, (uint8_t *)&info, sizeof(info));
+	if (win) {
+		// play victory animation
+		while (1) {
+			wireless_send_32(true, true, 0xFFFF);
+		}
+	} else {
+		wireless_send_32(true, true, 0x0000);
+		// play defeat animation
+		while (1) {
+			wireless_send_32(true, true, 0x0000);
+		}
+	}
+}
 //*****************************************************************************
 //*****************************************************************************
 void game_over_check(){
@@ -387,8 +409,7 @@ void game_over_check(){
 					|| (send_packet.x_pos >= 219 && mode_state==MOV_LEFT )
 					|| (send_packet.x_pos <= 1 && mode_state==MOV_RIGHT ))
 	{
-		eeprom_seq_write(EEPROM_I2C_BASE, 0, (uint8_t *)&info, sizeof(info));
-		while(1);
+		spin(false);
 	}
 
 	if(mode_state==MOV_UP)
@@ -397,8 +418,7 @@ void game_over_check(){
     {
        if(bitmap[send_packet.x_pos+i][(int)(send_packet.y_pos+19)/32] & (1 << ((send_packet.y_pos+19)%32)))
        {
-		 eeprom_seq_write(EEPROM_I2C_BASE, 0, (uint8_t *)&info, sizeof(info));
-         while(1){}
+		 spin(false);
        }
     }
   }
@@ -407,8 +427,7 @@ void game_over_check(){
     {
        if(bitmap[send_packet.x_pos+i][(int)send_packet.y_pos/32] & (1 << (send_packet.y_pos%32)))
        {
-		 eeprom_seq_write(EEPROM_I2C_BASE, 0, (uint8_t *)&info, sizeof(info));
-         while(1){}
+		 spin(false);
        }
     }
   }
@@ -417,8 +436,7 @@ void game_over_check(){
     {
        if(bitmap[send_packet.x_pos+19][(int)(send_packet.y_pos+i)/32] & (1 << ((send_packet.y_pos+i)%32)))
        {
-		 eeprom_seq_write(EEPROM_I2C_BASE, 0, (uint8_t *)&info, sizeof(info));
-         while(1){}
+		 spin(false);
        }
     }
   }
@@ -428,8 +446,7 @@ void game_over_check(){
     {
        if(bitmap[send_packet.x_pos][(int)(send_packet.y_pos+i)/32] & (1 << ((send_packet.y_pos+i)%32)))
        {
-		 eeprom_seq_write(EEPROM_I2C_BASE, 0, (uint8_t *)&info, sizeof(info));
-         while(1){}
+		 spin(false);
        }
     }
   }
@@ -546,7 +563,7 @@ main(void)
 		LCD_COLOR_BLUE2,       // Foreground Color
 		LCD_COLOR_BLACK        // Background Color
 	);
-	
+
 	lcd_draw_image(
 		0,                 // X Pos
 		tr2n_logoWidthPixels,   // Image Horizontal Width
@@ -566,15 +583,15 @@ main(void)
 		LCD_COLOR_CYAN,      // Foreground Color
 		LCD_COLOR_GRAY     // Background Color
 	);
-	
+
 	old_packet.x_pos = 120;
 	old_packet.y_pos = 272;
 	old_packet.direction = 0x1;
-	
+
 	new_packet.x_pos = 120;
 	new_packet.y_pos = 271;
 	new_packet.direction = 0x1;
-	
+
 	while (!self_play || !remote_play) {
 		if (receive) {
 			wireless_get_32(false, (uint32_t *)&startup);
@@ -595,12 +612,12 @@ main(void)
 			}
 		}
 	}
-	
+
 	lcd_clear_screen(LCD_COLOR_BLACK);
 
 	// initialize and set off the watchdog timer for 15 seconds
 	watchdog_timer_config(WATCHDOG0, 750000000 , false, true, false);
-	
+
 	// filter out start packets
 	/*while(1) {
 		if (receive) {
@@ -623,7 +640,7 @@ main(void)
 			receive = false;
 		}
 	}*/
-	
+
 	printf("\n*********************\n");
 	printf("** start main loop **\n");
 	printf("*********************\n");
@@ -663,7 +680,7 @@ main(void)
 			}
 			set_leds(led_status);
 		}
-		
+
 		// respond to radio interrupts
 		if (transmit) {
 			// transmit current self position
@@ -678,6 +695,9 @@ main(void)
 		}
 		if (receive) {
 			wireless_get_32(false, (uint32_t *)&new_packet);
+			if (*((uint32_t *)(&new_packet)) == 0) {
+				spin(true);
+			}
 			if (new_packet.direction != 0xEF) {
 				new_packet.x_pos = 240 - new_packet.x_pos;
 				new_packet.y_pos = 320 - new_packet.y_pos;
@@ -701,9 +721,9 @@ main(void)
 				// feed the dog
 				WATCHDOG0->LOAD = 750000000;
 				receive = false;
-				
+
 				player2Tron();
-				
+
 				memcpy(&old_packet, &new_packet, sizeof(struct data_packet));
 			}
 		}
@@ -713,19 +733,19 @@ main(void)
 			// keep player 2 on screen even if there are no packets
 			switch (old_packet.direction & 0xF) {
 				case 0x1 :
-					tron_draw_down(old_packet.x_pos, old_packet.y_pos, true);
+					tron_draw_down(old_packet.x_pos, old_packet.y_pos, true, false);
 					break;
 				case 0x2 :
-					tron_draw_up(old_packet.x_pos, old_packet.y_pos, true);
+					tron_draw_up(old_packet.x_pos, old_packet.y_pos, true, false);
 					break;
 				case 0x4 :
-					tron_draw_right(old_packet.x_pos, old_packet.y_pos, true);
+					tron_draw_right(old_packet.x_pos, old_packet.y_pos, true, false);
 					break;
 				case 0x8 :
-					tron_draw_left(old_packet.x_pos, old_packet.y_pos, true);
+					tron_draw_left(old_packet.x_pos, old_packet.y_pos, true, false);
 					break;
 			}
-			
+
 			mov = analog_conversion(x_pos, y_pos);
 			if(start)
 			{
@@ -844,7 +864,7 @@ main(void)
 							}
 							send_packet.x_pos+=9;
 						}
-						
+
 					}else{
 						right = 1;
 						left =0;
@@ -937,9 +957,9 @@ main(void)
 									LCD_COLOR_BLACK     // Background Color
 								);
 							}
-							send_packet.x_pos-=9;						
+							send_packet.x_pos-=9;
 						}
-						
+
 					}else{
 						left = 1 ;
 						right = 0;

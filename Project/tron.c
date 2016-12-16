@@ -1,6 +1,6 @@
 #include "tron.h"
 
-void tron_draw_up(unsigned int curr_x, unsigned int curr_y, bool remote) {
+void tron_draw_up(unsigned int curr_x, unsigned int curr_y, bool remote, bool box) {
 	uint16_t fg_color;
 	uint16_t bg_color;
 
@@ -10,6 +10,9 @@ void tron_draw_up(unsigned int curr_x, unsigned int curr_y, bool remote) {
 	} else {
 		fg_color = SELF_FG;
 		bg_color = SELF_BG;
+	}
+	if (box) {
+		fg_color = bg_color;
 	}
 
 	lcd_draw_image(
@@ -23,7 +26,7 @@ void tron_draw_up(unsigned int curr_x, unsigned int curr_y, bool remote) {
 	);
 }
 
-void tron_draw_down(unsigned int curr_x, unsigned int curr_y, bool remote) {
+void tron_draw_down(unsigned int curr_x, unsigned int curr_y, bool remote, bool box) {
 	uint16_t fg_color;
 	uint16_t bg_color;
 
@@ -33,6 +36,9 @@ void tron_draw_down(unsigned int curr_x, unsigned int curr_y, bool remote) {
 	} else {
 		fg_color = SELF_FG;
 		bg_color = SELF_BG;
+	}
+	if (box) {
+		fg_color = bg_color;
 	}
 
 	lcd_draw_image(
@@ -46,7 +52,7 @@ void tron_draw_down(unsigned int curr_x, unsigned int curr_y, bool remote) {
 	);
 }
 
-void tron_draw_left(unsigned int curr_x, unsigned int curr_y, bool remote) {
+void tron_draw_left(unsigned int curr_x, unsigned int curr_y, bool remote, bool box) {
 	uint16_t fg_color;
 	uint16_t bg_color;
 
@@ -56,6 +62,9 @@ void tron_draw_left(unsigned int curr_x, unsigned int curr_y, bool remote) {
 	} else {
 		fg_color = SELF_FG;
 		bg_color = SELF_BG;
+	}
+	if (box) {
+		fg_color = bg_color;
 	}
 
 	lcd_draw_image(
@@ -69,7 +78,7 @@ void tron_draw_left(unsigned int curr_x, unsigned int curr_y, bool remote) {
 	);
 }
 
-void tron_draw_right(unsigned int curr_x, unsigned int curr_y, bool remote) {
+void tron_draw_right(unsigned int curr_x, unsigned int curr_y, bool remote, bool box) {
 	uint16_t fg_color;
 	uint16_t bg_color;
 
@@ -79,6 +88,9 @@ void tron_draw_right(unsigned int curr_x, unsigned int curr_y, bool remote) {
 	} else {
 		fg_color = SELF_FG;
 		bg_color = SELF_BG;
+	}
+	if (box) {
+		fg_color = bg_color;
 	}
 
 	lcd_draw_image(
